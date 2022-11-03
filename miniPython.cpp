@@ -15,34 +15,33 @@
 #define MINUS "MINUS"
 #define ASSIGNMENT "EQUAL"
 #define MULTIPLY "MULTIPLY"
-#define DIVIDE "DIVIDE"
+#define T_DIVIDE "DIVIDE"
 
-#define COLON "COLON"
-#define COMMA "COMMA"
-#define SPACE "SPACE"
-#define LEFT_PAR "LEFT_PAREN"
-#define RIGHT_PAR "RIGHT_PAREN"
-#define LEFT_BRACK "LEFT_BRACKET"
-#define RIGHT_BRACK "RIGHT_BRACKET"
+#define T_COLON "COLON"
+#define T_COMMA "COMMA"
+#define T_LEFT_PAREN "LEFT_PAREN"
+#define T_RIGHT_PAREN "RIGHT_PAREN"
+#define T_LEFT_BRACKET "LEFT_BRACKET"
+#define T_RIGHT_BRACKET "RIGHT_BRACKET"
 
-#define VARIABLE "VARIABLE"
+#define T_IDENTIFIER "IDENTIFIER"
 
-#define IF "if"
-#define ELIF "elif"
-#define ELSE "else"
-#define PRINT "print"
+#define T_KEYWORD_IF "if"
+#define T_KEYWORD_ELIF "elif"
+#define T_KEYWORD_ELSE "else"
+#define T_KEYWORD_PRINT "print"
 
 
-#define AND "AND"
-#define NOT "NOT"
-#define OR "OR"
+#define T_KEYWORD_AND "AND"
+#define T_KEYWORD_NOT "NOT"
+#define T_KEYWORD_OR "OR"
 
-#define NOT_EQUAL "NOT_EQUAL"
-#define COMP_EQUAL "EQUAL_EQUAL"
-#define LESS_THAN "LESS_THAN"
-#define LESS_THAN_EQUAL "LESS_THAN_OR_EQUAL"
-#define GREATER_THAN "GREATER_THAN"
-#define GREATER_THAN_EQUALS "GREATER_THAN_OR_EQUAL"
+#define T_NOT_EQUAL "NOT_EQUAL"
+#define T_EQUAL_EQUAL "EQUAL_EQUAL"
+#define T_LESS_THAN "LESS_THAN"
+#define T_LESS_THAN_EQUAL "LESS_THAN_OR_EQUAL"
+#define T_GREATER_THAN "GREATER_THAN"
+#define T_GREATER_THAN_EQUALS "GREATER_THAN_OR_EQUAL"
 
 
 using namespace std;
@@ -55,9 +54,9 @@ public:
     Token(std::string type, std::string value);
     Token(std::string type);
     Token();
+
     void print_token();
-    std::string get_token_type();
-    std::string get_token_value();
+
 };
 
 
@@ -71,18 +70,19 @@ public:
     std::vector<Token>* tokenVector;
     std::unordered_map<std::string, Token>* symbol_table;
 
-
+//public:
+     /* constructor */
     Lexer(std::vector<Token> *tk_list,
           std::unordered_map<std::string, Token> *sym_tab);
 
-    //reads input file, gives all tokens
+    /* will lex the input file and make tokens */
     void run_lexer(std::string line);
 
-    // helper, given a string, creates a token
+    /* will make a token given a string line */
     void make_tokens(std::string line_to_lex);
 
     /* will print tokens list */
-    //void print_tokenVector();
+    void print_tokenVector();
 
     /* will return a reference to the current tokenVector */
     std::vector<Token> get_tokenVector();
@@ -94,6 +94,7 @@ public:
 };
 
 
+//struct FactorNode
 class FactorNode
 {
 public:
@@ -102,6 +103,7 @@ public:
     FactorNode() {}
 };
 
+//struct TermNode
 class TermNode
 {
 public:
@@ -151,6 +153,7 @@ public:
     };
 };
 
+//struct ExpressionNode
 class ExpressionNode
 {
 public:
@@ -169,7 +172,9 @@ public:
     Token op;
 
     /* for single operator */
-    ExpressionNode(TermNode *lt, TermNode *rt, Token opx)
+    ExpressionNode(TermNode *lt,
+                   TermNode *rt,
+                   Token opx)
     {
         left_term = lt;
         right_term = rt;
@@ -177,7 +182,11 @@ public:
     }
 
     /* for double operator */
-    ExpressionNode(ExpressionNode *lbe, TermNode *lt, TermNode *rt, Token opx)
+    ExpressionNode(
+        ExpressionNode *lbe,
+        TermNode *lt,
+        TermNode *rt,
+        Token opx)
     {
         left_binary_expression = lbe;
         left_term = lt;
@@ -187,6 +196,7 @@ public:
 
     ExpressionNode()
     {
+        // left_binary_expression = new ExpressionNode();
         left_term = nullptr;
         right_term = nullptr;
         op = Token();
@@ -201,17 +211,16 @@ public:
     std::vector<Token> *tokenVector;
     std::unordered_map<std::string, Token> *symbol_table;
 
-    bool *take_branch;
-    bool *take_branch_else;
+    bool *should_do_if_statement;
+    bool *should_do_else_statement;
     bool *is_if_done;
 
-    /* will intialize the parsers token list to the 
-       address of the lexer generatedtoken list */
+
     Parser();
     Parser(std::vector<Token> *lexer_tokenVector,
            std::unordered_map<std::string, Token> *lexer_symbol_table,
-           bool *take_branch,
-           bool *take_branch_else, bool *take_branch_elif);
+           bool *should_do_if_s,
+           bool *should_do_else_s, bool *should_do_elif_s);
 
     /* will get the current token from token list */
     Token get_current_token();
@@ -249,36 +258,35 @@ public:
 
 int main(int argc, char **argv)
 {
-
     std::unordered_map<std::string, Token> symbol_table;
     std::string input_file_name = argv[1];
 
     std::ifstream input(input_file_name);
 
-    bool take_branch = true;
-    bool take_branch_else = true;
+    bool should_do_if_statement = true;
+    bool should_do_else_statement = true;
     bool is_if_done = true;
 
     for (std::string line; getline(input, line);)
     {
-        //skip comments
+        /* skip all empty and commented out lines */
         if (line == "" || line[0] == '#')
         {
             continue;
         }
-        //soon as you hit end character, start a new line
+
         if (line[line.length() - 1] == '\0')
         {
             line.pop_back();
         }
         
-        if (take_branch == false && is_if_done == true)
+        if (should_do_if_statement == false && is_if_done == true)
         {
             if (line[0] == ' ')
                 continue;
         }
 
-        else if (take_branch_else == false &&
+        else if (should_do_else_statement == false &&
                  is_if_done == true)
         {
             if (line[0] == ' ')
@@ -287,30 +295,22 @@ int main(int argc, char **argv)
 
         std::vector<Token> tokenVector;
 
-        //Lexer lexer1;
-        //lexer1.tokenVector = &tokenVector;
-
         Lexer lexer = Lexer(
             &tokenVector,
             &symbol_table);
 
         lexer.run_lexer(line);
-        /*
-        Parser parser1;
-        parser1.tokenVector = &tokenVector;
-        parser1.symbol_table = &symbol_table;
-        parser1.take_branch = &take_branch;
-        parser1.take_branch_else = &take_branch_else;
-        parser1.is_if_done = &is_if_done;
+        Parser parser = Parser(&tokenVector,
+                               &symbol_table,
+                               &should_do_if_statement,
+                               &should_do_else_statement,
+                               &is_if_done
 
-        parser1.run_parser(line);
-        */
-
-        Parser parser = Parser(&tokenVector,&symbol_table,&take_branch,&take_branch_else,&is_if_done);
+        );
         parser.run_parser(line);
 
 
-        take_branch = true;
+        should_do_if_statement = true;
 
        
     }
@@ -321,13 +321,12 @@ int main(int argc, char **argv)
 
 
 
- //constructors 
+/* constructors */
 Token::Token(std::string token_type, std::string token_variable_value)
 {
     type = token_type;
     value = token_variable_value;
 };
-
 
 Token::Token(std::string token_type)
 {
@@ -345,15 +344,6 @@ void Token::print_token()
               << "(" << this->type << ","
               << this->value << ")\n"
               << std::endl;
-};
-
-std::string Token::get_token_type()
-{
-    return type;
-};
-std::string Token::get_token_value()
-{
-    return value;
 };
 
 
@@ -375,17 +365,16 @@ void Lexer::run_lexer(std::string line)
 
 void Lexer::make_tokens(std::string line_to_lex)
 {
-    Token* token = new Token;
     for (int i = 0; i < line_to_lex.length(); i++)
     {
 
         if (std::isdigit(line_to_lex[i]))
         {
-            std::string curr_string = "";
+            std::string str_formed = "";
             /* form an integer */
             while (true)
             {
-                curr_string += line_to_lex[i];
+                str_formed += line_to_lex[i];
 
                 /* if next character isnt a number then break */
                 if (!std::isdigit(line_to_lex[i + 1]))
@@ -393,40 +382,40 @@ void Lexer::make_tokens(std::string line_to_lex)
 
                 i++;
             }
-            token->type = INT;
-            token->value = curr_string;
-            tokenVector->push_back(*token);
-            //tokenVector->push_back(Token(INT, curr_string));
+            Token token;
+            token.type = INT;
+            token.value = str_formed;
+            tokenVector->push_back(token);
         }
 
         /* check if the current char is a quotation  */
         else if (line_to_lex[i] == '\"')
         {
-            std::string curr_string = "";
+            std::string str_formed = "";
             i++;
             while (line_to_lex[i] != '\"')
             {
-                curr_string += line_to_lex[i];
+                str_formed += line_to_lex[i];
                 i++;
             }
-            token->type = STRING;
-            token->value = curr_string;
-            tokenVector->push_back(*token);
-            //tokenVector->push_back(Token(STRING, curr_string));
+            Token token;
+            token.type = STRING;
+            token.value = str_formed;
+            tokenVector->push_back(token);
         }
 
-        /* check if its  VARIABLE or keyword */
+        /* check if its  identifier or keyword */
 
         else if (std::isalpha(line_to_lex[i]))
         {
-            std::string curr_string = "";
+            std::string str_formed = "";
 
             /* keep looping until next space is found */
             while (true)
             {
-                curr_string += line_to_lex[i];
+                str_formed += line_to_lex[i];
 
-                /* break if the next character is not part of  the curr_string */
+                /* break if the next character is not part of  the str_formed */
                 if (
                     line_to_lex[i + 1] == '=' ||
                     line_to_lex[i + 1] == '\0' ||
@@ -455,73 +444,84 @@ void Lexer::make_tokens(std::string line_to_lex)
                 i++;
             };
 
-            if (curr_string == IF)
-            {   
-                token->type = IF;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
-            }
-            else if (curr_string == ELIF)
+            
+            if (str_formed == T_KEYWORD_IF)
             {
-                token->type = ELIF;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_IF;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
-            else if (curr_string == ELSE)
+            else if (str_formed == T_KEYWORD_ELIF)
             {
-                token->type = ELSE;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_ELIF;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
-            else if (curr_string == PRINT)
+            else if (str_formed == T_KEYWORD_ELSE)
             {
-                token->type = PRINT;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_ELSE;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
-            else if (curr_string == AND)
+            else if (str_formed == T_KEYWORD_PRINT)
             {
-                token->type = AND;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_PRINT;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
-            else if (curr_string == OR)
+            else if (str_formed == T_KEYWORD_AND)
             {
-                token->type = OR;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_AND;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
-            else if (curr_string == NOT)
+            else if (str_formed == T_KEYWORD_OR)
             {
-                token->type = NOT;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_KEYWORD_OR;
+                token.value = str_formed;
+                tokenVector->push_back(token);
+            }
+            else if (str_formed == T_KEYWORD_NOT)
+            {
+                Token token;
+                token.type = T_KEYWORD_NOT;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
             else
             {
-                token->type = VARIABLE;
-                token->value = curr_string;
-                tokenVector->push_back(*token);
+                Token token;
+                token.type = T_IDENTIFIER;
+                token.value = str_formed;
+                tokenVector->push_back(token);
             }
         }
 
-        /* check if current char is = or == sign */
+        // check if current char is = or == sign 
         else if (line_to_lex[i] == '=')
         {
             if (line_to_lex[i + 1] == '=')
             {
+                /* == */
                 i++;
-                token->type = COMP_EQUAL;
-                token->value = "==";
-                tokenVector->push_back(*token);
-                //tokenVector->push_back(Token(COMP_EQUAL,"=="));
+                Token token;
+                token.type = T_EQUAL_EQUAL;
+                token.value = "==";
+                tokenVector->push_back(token);
             }
             else
-            {   
-                token->type = ASSIGNMENT;
-                token->value = '=';
-                tokenVector->push_back(*token);
-                //tokenVector->push_back(Token(ASSIGNMENT,std::string(1, '=')));
+            {
+                /* = */
+                Token token;
+                token.type = ASSIGNMENT;
+                token.value = "=";
+                tokenVector->push_back(token);
             }
         }
 
@@ -532,10 +532,14 @@ void Lexer::make_tokens(std::string line_to_lex)
             if (line_to_lex[i + 1] == '=')
             {
                 i++; //advance token an extra time
-                token->type = NOT_EQUAL;
-                token->value = "!=";
-                tokenVector->push_back(*token);
-                //tokenVector->push_back(Token(NOT_EQUAL, "!="));
+                Token token;
+                token.type = T_NOT_EQUAL;
+                token.value = "!=";
+                tokenVector->push_back(token);
+            }
+            else
+            {
+                std::cout << "syntax error\n";
             }
         }
 
@@ -547,20 +551,18 @@ void Lexer::make_tokens(std::string line_to_lex)
             {
                 /* <= */
                 i++; //advance token an extra time
-                token->type = LESS_THAN_EQUAL;
-                token->value = "<=";
-                tokenVector->push_back(*token);
-                //tokenVector->push_back(Token(LESS_THAN_EQUAL,
-                //                             "<="));
+                Token token;
+                token.type = T_LESS_THAN_EQUAL;
+                token.value = "<=";
+                tokenVector->push_back(token);
             }
             else
             {
-                /* < */
-                token->type = LESS_THAN;
-                token->value = '<';
-                tokenVector->push_back(*token);
-                //tokenVector->push_back(Token(LESS_THAN,
-                //                             std::string(1, '<')));
+                // < 
+                Token token;
+                token.type = T_LESS_THAN;
+                token.value = "<";
+                tokenVector->push_back(token);
             }
         }
 
@@ -571,108 +573,118 @@ void Lexer::make_tokens(std::string line_to_lex)
             {
                 /* >= */
                 i++; //advance token an extra time
-                token->type = GREATER_THAN_EQUALS;
-                token->value = ">=";
-                tokenVector->push_back(*token);
-
-                //tokenVector->push_back(Token(GREATER_THAN_EQUALS,
-                //                             ">="));
+                Token token;
+                token.type = T_GREATER_THAN_EQUALS;
+                token.value = ">=";
+                tokenVector->push_back(token);
             }
             else
             {
                 /* > */
-                token->type = GREATER_THAN;
-                token->value = ">";
-                tokenVector->push_back(*token);
-
-                //tokenVector->push_back(Token(GREATER_THAN,
-                //                             std::string(1, '>')));
+                Token token;
+                token.type = T_GREATER_THAN;
+                token.value = ">";
+                tokenVector->push_back(token);
             }
         }
 
         /* check if current char is plus sign */
         else if (line_to_lex[i] == '+')
         {
-            token->type = ADD;
-            token->value = "+";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = ADD;
+            token.value = "+";
+            tokenVector->push_back(token);
         }
 
         /* check if current char is plus sign */
         else if (line_to_lex[i] == '-')
         {
-            token->type = MINUS;
-            token->value = "-";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = MINUS;
+            token.value = "-";
+            tokenVector->push_back(token);
         }
 
         /* check if current char is divide sign */
         else if (line_to_lex[i] == '/')
         {
-            token->type = DIVIDE;
-            //token->value = line_to_lex[i];
-            token->value = "/";
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_DIVIDE;
+            token.value = "/";
+            tokenVector->push_back(token);
         }
 
-        /* check if current char is plus sign */
+        /* check if current char is mult sign */
         else if (line_to_lex[i] == '*')
         {
-            token->type = MULTIPLY;
-            token->value = "*";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = MULTIPLY;
+            token.value = "*";
+            tokenVector->push_back(token);
+
         }
         else if (line_to_lex[i] == '[')
         {
-            token->type = LEFT_BRACK;
-            token->value = "[";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_LEFT_BRACKET;
+            token.value = "[";
+            tokenVector->push_back(token);
         }
         else if (line_to_lex[i] == ']')
         {
-            token->type = RIGHT_BRACK;
-            //token->value = line_to_lex[i];
-            token->value = "]";
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_RIGHT_BRACKET;
+            token.value = "]";
+            tokenVector->push_back(token);
         }
         else if (line_to_lex[i] == '(')
         {
-            token->type = LEFT_PAR;
-            token->value = "(";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_LEFT_PAREN;
+            token.value = "(";
+            tokenVector->push_back(token);
         }
         else if (line_to_lex[i] == ')')
         {
-            token->type = RIGHT_PAR;
-            //token->value = line_to_lex[i];
-            token->value = ")";
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_RIGHT_PAREN;
+            token.value = ")";
+            tokenVector->push_back(token);
         }
         else if (line_to_lex[i] == ':')
         {
-            token->type = COLON;
-            token->value = ":";
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_COLON;
+            token.value = ":";
+            tokenVector->push_back(token);
         }
         
         else if (line_to_lex[i] == ',')
         {
-            token->type = COMMA;
-            token->type = ",";
-            //token->value = line_to_lex[i];
-            tokenVector->push_back(*token);
+            Token token;
+            token.type = T_COMMA;
+            token.value = ",";
+            tokenVector->push_back(token);
         }
 
-        else
-        {
-        }
     }
 };
+
+void Lexer::print_tokenVector()
+{
+
+    for (auto it = tokenVector->begin(); it != tokenVector->end(); it++)
+    {
+        it->print_token();
+    }
+};
+
+
+
+
+
+
 
 
 
@@ -681,20 +693,28 @@ Parser::Parser(){};
 Parser::Parser(std::vector<Token> *lexer_tokenVector,
                std::unordered_map<std::string, Token> *lexer_symbol_table,
                bool *is_condition_t,
-               bool *take_branch_else,
-               bool *take_branch_elif)
+               bool *should_do_else_s,
+               bool *should_do_elif_s)
 
 {
     current_token_index = -1;
     tokenVector = lexer_tokenVector;
     symbol_table = lexer_symbol_table;
 
-    take_branch = is_condition_t;
-    take_branch_else = take_branch_else;
-    is_if_done = take_branch_elif;
+    should_do_if_statement = is_condition_t;
+    should_do_else_statement = should_do_else_s;
+    is_if_done = should_do_elif_s;
+
+    /* get a token */
     advance_current_token_index();
 }
 
+/**
+ * 
+ * 
+ * 
+ * 
+ */
 
 void Parser::advance_current_token_index()
 {
@@ -704,6 +724,12 @@ void Parser::advance_current_token_index()
         current_token = (*tokenVector)[current_token_index];
 }
 
+/**
+ * 
+ * 
+ * 
+ * 
+ */
 
 FactorNode *Parser::factor()
 {
@@ -711,34 +737,34 @@ FactorNode *Parser::factor()
     factor_node->token = Token();
 
     /* if its a variable, get its value */
-    if (current_token.get_token_type() == VARIABLE)
+    if (current_token.type == T_IDENTIFIER)
     {
-        auto variable_data = symbol_table->find(current_token.get_token_value());
+        auto variable_data = symbol_table->find(current_token.value);
         if (variable_data == symbol_table->end())
         {
             /* variable doesnt exist, undefined error */
-            std::cout << "there was an error";
+            std::cout << "error\n"
+                      << std::endl;
         }
 
         /* if variable is a list and we are trying to access its elements */
-        if (variable_data->second.get_token_type() == LIST &&
-            (*tokenVector)[current_token_index + 1].get_token_type() ==
-                LEFT_BRACK)
+        if (variable_data->second.type == LIST &&
+            (*tokenVector)[current_token_index + 1].type ==
+                T_LEFT_BRACKET)
         {
             //left bracket
             advance_current_token_index();
 
-            std::string list_value = variable_data->second.get_token_value();
+            std::string list_value = variable_data->second.value;
 
             //start index
             advance_current_token_index();
 
             /* get the start index of where to copy */
-            int start_index = stoi(current_token.get_token_value());
+            int start_index = stoi(current_token.value);
 
             //get the entire list remove the commas
             std::vector<std::string> list_to_access;
-
             for(int i = 0; i < list_value.length(); i++)
             {
                 std::string element = "";
@@ -756,28 +782,27 @@ FactorNode *Parser::factor()
 
             /* if just retrieving element or copying multi elements */
             bool one_element_access = false;
-
             //either colon or right bracket
             advance_current_token_index();
 
             /* if only one index to get element from */
-            if (current_token.get_token_type() == RIGHT_BRACK)
+            if (current_token.type == T_RIGHT_BRACKET)
             {
                 one_element_access = true;
                 stop_index = -1;
             }
             /* if slicing into list */
-            else if (current_token.get_token_type() == COLON)
+            else if (current_token.type == T_COLON)
             {
 
                 /* check if token after colon is an integer */
                 advance_current_token_index();
 
                 /* get the number after the colon as the stop index  */
-                if (current_token.get_token_type() == INT)
+                if (current_token.type == INT)
                 {
                     //dont wanna copy last element but everything up to it
-                    stop_index = stoi(current_token.get_token_value());
+                    stop_index = stoi(current_token.value);
                 }
                 else
                 {
@@ -785,9 +810,9 @@ FactorNode *Parser::factor()
                         we are copying entire remainder of list */
 
                     /* throw syntax error no right bracket */
-                    if (current_token.get_token_type() != RIGHT_BRACK)
+                    if (current_token.type != T_RIGHT_BRACKET)
                     {
-                        std::cout << "there was an error";
+                        std::cout << "error\n";
                     }
                     //get everything from the remainder of the list
                     stop_index = list_to_access.size();
@@ -800,7 +825,10 @@ FactorNode *Parser::factor()
                 /* invalid list out of bound */
                 if (start_index > (int)list_to_access.size() - 1)
                 {
-                    factor_node->token = Token(STRING, "error");
+                    Token t;
+                    t.type = STRING;
+                    t.value = "ERROR";
+                    factor_node->token = t;
                 }
                 else
                 {
@@ -811,12 +839,20 @@ FactorNode *Parser::factor()
                     /* store an integer token */
                     if (std::isdigit(value_in_list[0]))
                     {
-                        factor_node->token = Token(INT, value_to_save_in_token);
+
+                        Token t;
+                        t.type = INT;
+                        t.value = value_to_save_in_token;
+                        factor_node->token = t;
                     }
                     else
                     {
                         /* store a string token */
-                        factor_node->token = Token(STRING, value_to_save_in_token);
+                        Token t;
+                        t.type = STRING;
+                        t.value = value_to_save_in_token;
+                        factor_node->token = t;
+                        //factor_node->token = Token(STRING, value_to_save_in_token);
                     }
                 }
             }
@@ -828,39 +864,43 @@ FactorNode *Parser::factor()
                 for (int i = start_index; i < stop_index; i++)
                 {
                     copied_list += list_to_access[i];
-                    copied_list += ",";
+                    copied_list += ", ";
                 }
                 copied_list.pop_back(); //remove last comma
-                factor_node->token = Token(LIST, copied_list);
+                Token t;
+                t.type = LIST;
+                t.value = copied_list;
+                factor_node->token = t;
             }
         }
         else
         {
-            /* its just an VARIABLE not list access */
-            factor_node->token =
-                Token(variable_data->second.get_token_type(),
-                      variable_data->second.get_token_value());
+            /* its just an identifier not list access */
+            Token t;
+            t.type = variable_data->second.type;
+            t.value = variable_data->second.value;
+            factor_node->token = t;
         }
 
         advance_current_token_index();
     }
 
     /* if the current token is an integer or decimal make a number node for AST */
-    if (current_token.get_token_type() == INT )
+    if (current_token.type == INT )
     {
         factor_node->token = current_token;
         advance_current_token_index();
     }
 
     /* string type */
-    if (current_token.get_token_type() == STRING)
+    if (current_token.type == STRING)
     {
         factor_node->token = current_token;
         advance_current_token_index();
     }
 
     /* if the current token is a LEFT_PAREN or RIGHT_PARENT */
-    if (current_token.get_token_type() == LEFT_PAR)
+    if (current_token.type == T_LEFT_PAREN)
     {
         advance_current_token_index();
 
@@ -869,7 +909,7 @@ FactorNode *Parser::factor()
         interpret_expression_in_order(expr, 1, (expr->right_term != nullptr));
 
         /* if we get right paren, inner expression is done */
-        if (current_token.get_token_type() == RIGHT_PAR)
+        if (current_token.type == T_RIGHT_PAREN)
         {
             /* advance past the inner expression right paren */
             advance_current_token_index();
@@ -879,32 +919,33 @@ FactorNode *Parser::factor()
         else
         {
             /* throw syntax error if we dont got a right paren */
-            std::cout << "there was an error\n";        
+            std::cout << "error\n";
         }
     }
 
     /* LIST TYPE */
-    if (current_token.get_token_type() == LEFT_BRACK)
+    if (current_token.type == T_LEFT_BRACKET)
     {
         advance_current_token_index();
 
         /* store all list elements  */
         std::string list_elements = "";
-        while (current_token.get_token_type() !=
-               RIGHT_BRACK)
+        while (current_token.type !=
+               T_RIGHT_BRACKET)
         {
             if (current_token_index == tokenVector->size())
             {
                 /* no right bracket == syntax error */
-                std::cout << "there was an error";
+                std::cout << "error\n";
             }
 
-            list_elements += current_token.get_token_value();
+            list_elements += current_token.value;
             advance_current_token_index();
         }
-
-        factor_node->token = Token(LIST,
-                                   list_elements);
+        Token t;
+        t.type = LIST;
+        t.value = list_elements;
+        factor_node->token = t;
     }
 
     return factor_node;
@@ -931,8 +972,8 @@ TermNode *Parser::term()
     term_node->left_binary_term->left_factor = term_node->left_factor;
 
     /* if the token is multiply or divide */
-    while (current_token.get_token_type() == MULTIPLY ||
-           current_token.get_token_type() == DIVIDE)
+    while (current_token.type == MULTIPLY ||
+           current_token.type == T_DIVIDE)
     {
 
         term_node->op = current_token;
@@ -958,7 +999,12 @@ TermNode *Parser::term()
 
     return term_node;
 }
-
+/**
+ * 
+ * 
+ * 
+ * 
+ */
 
 ExpressionNode *Parser::expression()
 {
@@ -974,8 +1020,8 @@ ExpressionNode *Parser::expression()
 
     /* if the token is plus or minus */
     while (
-        current_token.get_token_type() == ADD ||
-        current_token.get_token_type() == MINUS)
+        current_token.type == ADD ||
+        current_token.type == MINUS)
     {
 
         expression_node->op = current_token;
@@ -1048,10 +1094,10 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
 
             /* get the final left result value from the top node */
             left_result =
-                node->left_term->left_factor->token.get_token_value();
+                node->left_term->left_factor->token.value;
 
             left_result_token =
-                node->left_term->left_factor->token.get_token_type();
+                node->left_term->left_factor->token.type;
         }
 
         /* traverse right side of the expression node */
@@ -1060,38 +1106,47 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
             /* traverse the right term tree */
             interpret_term_in_order(node->right_term, tabs + 3);
 
-            right_result = node->right_term->left_factor->token.get_token_value();
-            right_result_token = node->right_term->left_factor->token.get_token_type();
+            right_result = node->right_term->left_factor->token.value;
+            right_result_token = node->right_term->left_factor->token.type;
         }
 
+        /* calculate the final result and store it in left node of the current node
+           next expression before it will read from it recursively
+        */
+
+        
         /* remove last token in list when the advancing token doesnt remove it */
 
         bool is_list_concat = true;
-        if (current_token.get_token_type() == RIGHT_BRACK)
+        if (current_token.type == T_RIGHT_BRACKET)
         {
-            auto left_bracket = (*tokenVector)[current_token_index - 3].get_token_type();
-            auto single_number = (*tokenVector)[current_token_index - 2].get_token_type();
+            auto left_bracket = (*tokenVector)[current_token_index - 3].type;
+            auto single_number = (*tokenVector)[current_token_index - 2].type;
 
             /* doing additon of values not list concatenation */
-            if (left_bracket == LEFT_BRACK && single_number == INT)
+            if (left_bracket == T_LEFT_BRACKET && single_number == INT)
             {
                 is_list_concat = false;
             }
-            current_token = Token(LIST, "");
+            Token t;
+            t.type = LIST;
+            t.value = "";
+            current_token = t;
         }
-        if (current_token.get_token_type() == VARIABLE)
+        if (current_token.type == T_IDENTIFIER)
         {
 
-            auto variable_data = symbol_table->find(current_token.get_token_value());
+            auto variable_data = symbol_table->find(current_token.value);
             if (variable_data == symbol_table->end())
             {
-                std::cout << "there waw an error";
+                std::cout << "error\n";
             }
 
             /* set the factor value to the variable tokens value */
-            current_token =
-                Token(variable_data->second.get_token_type(),
-                      variable_data->second.get_token_value());
+            Token t;
+            t.type = variable_data->second.type;
+            t.value = variable_data->second.value;
+            current_token = t;
         }
 
         /* if we only have a left term */
@@ -1104,18 +1159,21 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
             node->left_term = new TermNode();
             node->left_term->left_factor = new FactorNode();
 
-            if (current_token.get_token_type() == STRING ||
-                current_token.get_token_type() == LIST)
+            if (current_token.type == STRING ||
+                current_token.type == LIST)
             {
-                node->left_term->left_factor->token =
-                    Token(left_result_token, left_result);
+                Token t;
+                t.type = left_result_token;
+                t.value = left_result;
+                node->left_term->left_factor->token = t;
             }
             else
             {
                 /* integers */
-                node->left_term->left_factor->token =
-                    Token(left_result_token,
-                          std::to_string(stoi(left_result)));
+                Token t;
+                t.type = left_result_token;
+                t.value = std::to_string(stoi(left_result));
+                node->left_term->left_factor->token = t;
             }
 
         }
@@ -1130,17 +1188,20 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
             node->left_term = new TermNode();
             node->left_term->left_factor = new FactorNode();
 
-            if (current_token.get_token_type() == STRING ||
-                current_token.get_token_type() == LIST)
+            if (current_token.type == STRING ||
+                current_token.type == LIST)
             {
-                node->left_term->left_factor->token =
-                    Token(left_result_token, right_result);
+                Token t;
+                t.type = left_result_token;
+                t.value = right_result;
+                node->left_term->left_factor->token = t;
             }
             else
             {
-                node->left_term->left_factor->token =
-                    Token(right_result_token,
-                          std::to_string(stoi(right_result)));
+                Token t;
+                t.type = right_result_token;
+                t.value = std::to_string(stoi(right_result));
+                node->left_term->left_factor->token = t;
             }
 
         }
@@ -1148,7 +1209,7 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
         /* if we have both a left and right term need to do binary operation */
         if (node->left_term && node->right_term)
         {
-            if (node->op.get_token_type() == ADD)
+            if (node->op.type == ADD)
             {
 
                 /* make the left term a new node and store the updated value in it
@@ -1158,50 +1219,57 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
                 node->left_term->left_factor = new FactorNode();
 
                 /* list element access */
-                if (current_token.get_token_type() == LIST &&
+                if (current_token.type == LIST &&
                     !is_list_concat)
                 {
                     if (!std::isdigit(right_result[0]))
                     {
                         /* string addition */
-                        node->left_term->left_factor->token =
-                            Token(left_result_token, left_result + right_result);
+                        Token t;
+                        t.type = left_result_token;
+                        t.value = left_result + right_result;
+                        node->left_term->left_factor->token = t;
                     }
                     else
-                    {
+                    {   //////////////////////////////////////////////////////////////////////
                         /* integer addition */
-                        node->left_term->left_factor->token =
-                            Token(left_result_token,
-                                  std::to_string(stoi(left_result) +
-                                                 stoi(right_result)));
+                        Token t;
+                        t.type = left_result_token;
+                        t.value = std::to_string(stoi(left_result) + stoi(right_result));
+                        node->left_term->left_factor->token = t;
+                        //std::cout << t.value;
                     }
                 }
-                else if (current_token.get_token_type() == LIST &&
+                else if (current_token.type == LIST &&
                          is_list_concat)
                 {
                     /* list concatenation */
-                    node->left_term->left_factor->token =
-                        Token(left_result_token,
-                              left_result + "," + right_result);
+                    Token t;
+                    t.type = left_result_token;
+                    t.value = left_result + "," + right_result;
+                    node->left_term->left_factor->token = t;
                 }
-                else if (current_token.get_token_type() == STRING)
+                else if (current_token.type == STRING)
                 {
                     /* string concatenation */
-                    node->left_term->left_factor->token =
-                        Token(left_result_token, left_result + right_result);
+                    Token t;
+                    t.type = left_result_token;
+                    t.value = left_result + right_result;
+                    node->left_term->left_factor->token = t;
                 }
                 else
                 {
                     /* integers addition */
-                    node->left_term->left_factor->token =
-                        Token(left_result_token,
-                              std::to_string(stoi(left_result) +
-                                             stoi(right_result)));
+                    Token t;
+                    t.type = left_result_token;
+                    t.value = std::to_string(stoi(left_result) + stoi(right_result));
+                    node->left_term->left_factor->token = t;
+
                 }
 
             }
 
-            if (node->op.get_token_type() == MINUS)
+            if (node->op.type == MINUS)
             {
 
                 /* make the left term a new node and store the updated value in it
@@ -1210,8 +1278,8 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
                 node->left_term = new TermNode();
                 node->left_term->left_factor = new FactorNode();
 
-                if (current_token.get_token_type() == STRING ||
-                    current_token.get_token_type() == LIST)
+                if (current_token.type == STRING ||
+                    current_token.type == LIST)
                 {
                     // std::cout << "!!!!!! L - R  TOTAL = "
                     //           << left_result - right_result << std::endl
@@ -1219,10 +1287,14 @@ void Parser::interpret_expression_in_order(ExpressionNode *node,
                 }
                 else
                 {
+                    Token t;
+                    t.type = left_result_token;
+                    t.value = std::to_string(stoi(left_result) - stoi(right_result));
+                    node->left_term->left_factor->token = t;
 
-                    node->left_term->left_factor->token =
-                        Token(left_result_token,
-                              std::to_string(stoi(left_result) - stoi(right_result)));
+                    //node->left_term->left_factor->token =
+                    //    Token(left_result_token,
+                    //          std::to_string(stoi(left_result) - stoi(right_result)));
                 }
 
             }
@@ -1256,34 +1328,34 @@ void Parser::interpret_term_in_order(TermNode *node, int tabs)
         if (node->left_factor && node->right_factor)
         {
             /* calculate result of both operands */
-            if (node->left_factor->token.get_token_type() == INT &&
-                node->right_factor->token.get_token_type() == INT)
+            if (node->left_factor->token.type == INT &&
+                node->right_factor->token.type == INT)
             {
 
-                if (node->op.get_token_type() == MULTIPLY)
+                if (node->op.type == MULTIPLY)
                 {
                     auto result =
-                        std::stoi(node->left_factor->token.get_token_value()) *
-                        std::stoi(node->right_factor->token.get_token_value());
+                        std::stoi(node->left_factor->token.value) *
+                        std::stoi(node->right_factor->token.value);
 
                     /* store result in left factor of current node
                        next node will  read from this token and use it
                     */
                     node->left_factor->token =
-                        Token(node->left_factor->token.get_token_type(), std::to_string(result));
+                        Token(node->left_factor->token.type, std::to_string(result));
                 }
 
-                if (node->op.get_token_type() == DIVIDE)
+                if (node->op.type == T_DIVIDE)
                 {
                     auto result =
-                        std::stoi(node->left_factor->token.get_token_value()) /
-                        std::stoi(node->right_factor->token.get_token_value());
+                        std::stoi(node->left_factor->token.value) /
+                        std::stoi(node->right_factor->token.value);
 
                     /* store result in left factor of current node
                        next node will  read from this token and use it
                     */
                     node->left_factor->token =
-                        Token(node->left_factor->token.get_token_type(),
+                        Token(node->left_factor->token.type,
                               std::to_string(result));
                 }
             }
@@ -1302,7 +1374,7 @@ void Parser::run_parser(std::string current_line)
 {
 
     /* print the value to screen */
-    if (current_token.get_token_type() == PRINT)
+    if (current_token.type == T_KEYWORD_PRINT)
     {
         /* get left paren */
         advance_current_token_index();
@@ -1311,39 +1383,45 @@ void Parser::run_parser(std::string current_line)
         advance_current_token_index();
 
        /* print variable name  */
-        if ((*tokenVector)[current_token_index + 1].get_token_type() ==
-                RIGHT_PAR &&
-            current_token.get_token_type() == VARIABLE)
+        if ((*tokenVector)[current_token_index + 1].type ==
+                T_RIGHT_PAREN &&
+            current_token.type == T_IDENTIFIER)
         {
             /* printing a variable */
-            auto variable_data = symbol_table->find(current_token.get_token_value());
+            auto variable_data = symbol_table->find(current_token.value);
             if (variable_data == symbol_table->end())
             {
                 std::cout << "Variable not defined" << std::endl;
                 std::cout << "error\n";
-                exit(-1);
             }
 
             /* check if printing a list */
-            if (variable_data->second.get_token_type() == LIST)
-            {
-                std::cout << "[" << variable_data->second.get_token_value()
-                       << "]"
-                       << std::endl;
+            if (variable_data->second.type == LIST)
+            {   
+                std::cout << "[";
+                for(int i = 0; i < variable_data->second.value.size(); i++)
+                {
+                    if(variable_data->second.value[i-1] == ',')
+                    {
+                        std::cout << " ";
+                    }
+                    std::cout << variable_data->second.value[i];
+                }
+                std::cout << "]";
             }
             else
             {
-                std::cout << variable_data->second.get_token_value() << std::endl;
+                std::cout << variable_data->second.value << std::endl;
             }
         }
          /*  print string */
-        else if ((*tokenVector)[current_token_index + 1].get_token_type() ==
-                     RIGHT_PAR &&
-                 current_token.get_token_type() == STRING)
+        else if ((*tokenVector)[current_token_index + 1].type ==
+                     T_RIGHT_PAREN &&
+                 current_token.type == STRING)
         {
             std::ofstream myfile;
             myfile.open("tc1.txt", std::ios_base::app);
-            myfile << current_token.get_token_value() << std::endl;
+            myfile << current_token.value << std::endl;
             myfile.close();
         }
         else
@@ -1365,18 +1443,18 @@ void Parser::run_parser(std::string current_line)
                 expression_to_print->left_term->left_factor->token;
 
             /* check if printing a list */
-            if (token_to_print.get_token_type() ==
+            if (token_to_print.type ==
                 LIST)
             {
                 std::cout << "["
-                       << token_to_print.get_token_value()
+                       << token_to_print.value
                        << "]"
                        << std::endl;
             }
             else
             {
                 std::cout
-                    << token_to_print.get_token_value()
+                    << token_to_print.value
                     << std::endl;
             }
         }
@@ -1389,12 +1467,12 @@ void Parser::run_parser(std::string current_line)
  * 
  */
 
-    /* if its an VARIABLE, get the arithmetic expression value  */
-    else if (current_token.get_token_type() == VARIABLE)
+    /* if its an identifier, get the arithmetic expression value  */
+    else if (current_token.type == T_IDENTIFIER)
     {
 
         /* get variable name */
-        auto variable_name = current_token.get_token_value();
+        auto variable_name = current_token.value;
         advance_current_token_index();
 
         /* get equals sign */
@@ -1402,29 +1480,27 @@ void Parser::run_parser(std::string current_line)
 
         
         /* check if its a function call */
-        if (current_token.get_token_type() ==
-                     VARIABLE &&
-                 (*tokenVector)[current_token_index + 1].get_token_type() == LEFT_PAR)
+        if (current_token.type ==
+                     T_IDENTIFIER &&
+                 (*tokenVector)[current_token_index + 1].type == T_LEFT_PAREN)
         {
 
             /* get function code */
-            auto variable_data = symbol_table->find(current_token.get_token_value());
+            auto variable_data = symbol_table->find(current_token.value);
             if (variable_data == symbol_table->end())
             {
                 std::cout << "error" << std::endl;
-                exit(-1);
             }
 
-            std::string function_definition = variable_data->second.get_token_value();
-            std::string function_body = variable_data->second.get_token_value();
-            std::string function_params = variable_data->second.get_token_value();
+            std::string function_definition = variable_data->second.value;
+            std::string function_body = variable_data->second.value;
+            std::string function_params = variable_data->second.value;
 
             /* get params */
             auto start_pos_to_erase = function_params.find(":");
             if (start_pos_to_erase == std::string::npos)
             {
                 std::cout << "error\n";
-                exit(-1);
             }
             function_params.erase(start_pos_to_erase, function_params.length());
 
@@ -1432,7 +1508,7 @@ void Parser::run_parser(std::string current_line)
             auto end_pos_to_erase = function_definition.find(":") + 1;
             if (end_pos_to_erase == std::string::npos)
             {
-                std::cout << "there was an error \n";
+                std::cout << "error\n";
             }
             function_definition.erase(0, end_pos_to_erase);
 
@@ -1468,12 +1544,12 @@ void Parser::run_parser(std::string current_line)
 
             std::vector<std::string> args;
             /* get function args to pass in */
-            while (current_token.get_token_type() !=
-                   RIGHT_PAR)
+            while (current_token.type !=
+                   T_RIGHT_PAREN)
             {
-                if (current_token.get_token_value() != ",")
+                if (current_token.value != ",")
                 {
-                    args.push_back(current_token.get_token_value());
+                    args.push_back(current_token.value);
                 }
 
                 advance_current_token_index();
@@ -1496,16 +1572,189 @@ void Parser::run_parser(std::string current_line)
                 up_to_var.erase(idx_of_var, function_definition.length());
                 var_to_end.erase(0, idx_of_var + function_params_trimmed[i].length());
 
-                function_definition = up_to_var + args[i] + var_to_end;
+                function_definition = up_to_var +
+                                      args[i] +
+                                      var_to_end;
 
                 advance_current_token_index();
             }
 
+            /* if its a lambda if then solve the if  */
+            auto is_if = function_definition.find("if");
+            if (is_if != std::string::npos)
+            {
+                auto is_else = function_definition.find("else");
+
+                if (is_else == std::string::npos)
+                {
+                    std::cout << "error\n";
+                }
+
+                auto else_value = function_definition;
+                auto if_value = function_definition;
+
+                /* get proper return values for both if and else  */
+                if_value.erase(is_if, function_definition.length());
+                else_value.erase(0, is_else + 4); // + 4 == size of else
+
+                /* get the condition between if and else */
+                auto condition = function_definition;
+                condition.erase(0, is_if + 2); // + 2 == size of if
+                auto condition_else = condition.find("else");
+                condition.erase(condition_else, condition.length());
+
+                /* get the comparison operator and operands */
+
+                /* lex condition get the tokens */
+                this->tokenVector = new std::vector<Token>();
+                Lexer lexer = Lexer(
+                    this->tokenVector,
+                    symbol_table);
+                lexer.run_lexer(condition);
+                current_token_index = -1;
+                advance_current_token_index();
+
+                // std::getchar();
+
+                /* solve left and right result, then interpret results */
+                std::vector<Token> *left_list = new std::vector<Token>();
+                std::vector<Token> *right_list = new std::vector<Token>();
+
+                int idx_comp_op = 0; //will be index of comparison operator
+
+                /* get index of comparison operator */
+                for (auto it = tokenVector->begin();
+                     it != tokenVector->end();
+                     ++it)
+                {
+                    idx_comp_op++;
+                    if (it->type == T_NOT_EQUAL ||
+                        it->type == T_EQUAL_EQUAL ||
+                        it->type == T_LESS_THAN ||
+                        it->type == T_LESS_THAN_EQUAL ||
+                        it->type == T_GREATER_THAN ||
+                        it->type == T_GREATER_THAN_EQUALS)
+                    {
+                        break;
+                    }
+                }
+
+                /* copy over the expressions left and right of comparison operator */
+                idx_comp_op -= 1;
+                for (auto it = tokenVector->begin();
+                     it != tokenVector->begin() + idx_comp_op; ++it)
+                {
+                    left_list->push_back(*it);
+                }
+                auto comparison_token = (*tokenVector)[idx_comp_op];
+                for (auto it = tokenVector->begin() + idx_comp_op + 1;
+                     it != tokenVector->end(); ++it)
+                {
+                    right_list->push_back(*it);
+                }
+
+                /* evaluate left half of the tokens list */
+                tokenVector = left_list;
+                current_token_index = -1;
+                advance_current_token_index();
+                auto left_comp_expr = expression();
+
+                /* sometimes its null sometimes isnt, this makes it certain */
+                if (left_comp_expr->right_term == nullptr)
+                {
+                    left_comp_expr->left_binary_expression = nullptr;
+                }
+
+                interpret_expression_in_order(left_comp_expr,
+                                              1,
+                                              (left_comp_expr->right_term != nullptr));
+
+                /* evaluate right half of the tokens list */
+                tokenVector = right_list;
+                current_token_index = -1;
+                advance_current_token_index();
+                auto right_comp_expr = expression();
+
+                /* sometimes its null sometimes isnt, this makes it certain */
+                if (right_comp_expr->right_term == nullptr)
+                {
+                    right_comp_expr->left_binary_expression = nullptr;
+                }
+                interpret_expression_in_order(right_comp_expr,
+                                              1,
+                                              (right_comp_expr->right_term != nullptr));
+
+                /* calculate results */
+                auto left_value =
+                    left_comp_expr->left_term->left_factor->token.value;
+                auto left_type =
+                    left_comp_expr->left_term->left_factor->token.type;
+
+                auto right_value =
+                    right_comp_expr->left_term->left_factor->token.value;
+                auto right_type =
+                    right_comp_expr->left_term->left_factor->token.value;
+
+                /* make comparison check */
+                bool condition_result = false;
+                if (comparison_token.type == T_NOT_EQUAL)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) != stoi(right_value);
+                    else
+                        condition_result = left_value != right_value;
+                }
+                else if (comparison_token.type == T_EQUAL_EQUAL)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) == stoi(right_value);
+                    else
+                        condition_result = left_value == right_value;
+                }
+                else if (comparison_token.type == T_LESS_THAN)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) < stoi(right_value);
+                    else
+                        condition_result = left_value < right_value;
+                }
+                else if (comparison_token.type == T_LESS_THAN_EQUAL)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) <= stoi(right_value);
+                    else
+                        condition_result = left_value <= right_value;
+                }
+                else if (comparison_token.type == T_GREATER_THAN)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) > stoi(right_value);
+                    else
+                        condition_result = left_value > right_value;
+                }
+                else if (comparison_token.type == T_GREATER_THAN_EQUALS)
+                {
+                    if (left_type == INT)
+                        condition_result = stoi(left_value) >= stoi(right_value);
+                    else
+                        condition_result = left_value >= right_value;
+                }
+
+                /* store the result of the condition in func def to be parsed */
+                if (condition_result)
+                    function_definition = if_value;
+                else
+                    function_definition = else_value;
+
+                
+            }
 
             /* lex and parse new line */
             this->tokenVector = new std::vector<Token>();
             std::string line = variable_name + "=" + function_definition;
-            Lexer lexer = Lexer(this->tokenVector,symbol_table);
+            Lexer lexer = Lexer(
+                this->tokenVector,
+                symbol_table);
             lexer.run_lexer(line);
             current_token_index = -1;
             advance_current_token_index();
@@ -1538,8 +1787,8 @@ void Parser::run_parser(std::string current_line)
                 std::pair<std::string, Token>(
                     variable_name,
                     Token(
-                        variable_value->left_term->left_factor->token.get_token_type(),
-                        variable_value->left_term->left_factor->token.get_token_value())));
+                        variable_value->left_term->left_factor->token.type,
+                        variable_value->left_term->left_factor->token.value)));
         }
     }
 
@@ -1556,7 +1805,7 @@ void Parser::run_parser(std::string current_line)
  * 
  */
     /* if statement */
-    else if (current_token.get_token_type() == IF)
+    else if (current_token.type == T_KEYWORD_IF)
     {
 
         std::vector<Token> *left_list = new std::vector<Token>();
@@ -1570,12 +1819,12 @@ void Parser::run_parser(std::string current_line)
              ++it)
         {
             idx_comp_op++;
-            if (it->get_token_type() == NOT_EQUAL ||
-                it->get_token_type() == COMP_EQUAL ||
-                it->get_token_type() == LESS_THAN ||
-                it->get_token_type() == LESS_THAN_EQUAL ||
-                it->get_token_type() == GREATER_THAN ||
-                it->get_token_type() == GREATER_THAN_EQUALS)
+            if (it->type == T_NOT_EQUAL ||
+                it->type == T_EQUAL_EQUAL ||
+                it->type == T_LESS_THAN ||
+                it->type == T_LESS_THAN_EQUAL ||
+                it->type == T_GREATER_THAN ||
+                it->type == T_GREATER_THAN_EQUALS)
             {
                 break;
             }
@@ -1630,54 +1879,54 @@ void Parser::run_parser(std::string current_line)
 
         /* calculate result */
         auto left_value =
-            left_comp_expr->left_term->left_factor->token.get_token_value();
+            left_comp_expr->left_term->left_factor->token.value;
         auto left_type =
-            left_comp_expr->left_term->left_factor->token.get_token_type();
+            left_comp_expr->left_term->left_factor->token.type;
 
         auto right_value =
-            right_comp_expr->left_term->left_factor->token.get_token_value();
+            right_comp_expr->left_term->left_factor->token.value;
         auto right_type =
-            right_comp_expr->left_term->left_factor->token.get_token_value();
+            right_comp_expr->left_term->left_factor->token.value;
 
 
         /* make comparison check */
         bool compare = false;
-        if (comparison_token.get_token_type() == NOT_EQUAL)
+        if (comparison_token.type == T_NOT_EQUAL)
         {
             if (left_type == INT)
                 compare = stoi(left_value) != stoi(right_value);
             else
                 compare = left_value != right_value;
         }
-        else if (comparison_token.get_token_type() == COMP_EQUAL)
+        else if (comparison_token.type == T_EQUAL_EQUAL)
         {
             if (left_type == INT)
                 compare = stoi(left_value) == stoi(right_value);
             else
                 compare = left_value == right_value;
         }
-        else if (comparison_token.get_token_type() == LESS_THAN)
+        else if (comparison_token.type == T_LESS_THAN)
         {
             if (left_type == INT)
                 compare = stoi(left_value) < stoi(right_value);
             else
                 compare = left_value < right_value;
         }
-        else if (comparison_token.get_token_type() == LESS_THAN_EQUAL)
+        else if (comparison_token.type == T_LESS_THAN_EQUAL)
         {
             if (left_type == INT)
                 compare = stoi(left_value) <= stoi(right_value);
             else
                 compare = left_value <= right_value;
         }
-        else if (comparison_token.get_token_type() == GREATER_THAN)
+        else if (comparison_token.type == T_GREATER_THAN)
         {
             if (left_type == INT)
                 compare = stoi(left_value) > stoi(right_value);
             else
                 compare = left_value > right_value;
         }
-        else if (comparison_token.get_token_type() == GREATER_THAN_EQUALS)
+        else if (comparison_token.type == T_GREATER_THAN_EQUALS)
         {
             if (left_type == INT)
                 compare = stoi(left_value) >= stoi(right_value);
@@ -1688,21 +1937,21 @@ void Parser::run_parser(std::string current_line)
 
         if (compare)
         {
-            *take_branch_else = false;
+            *should_do_else_statement = false;
             *is_if_done = false;
         }
         else
         {
-            *take_branch_else = true;
+            *should_do_else_statement = true;
             *is_if_done = true;
         }
     }
 
     /* else statement */
-    else if (current_token.get_token_type() == ELSE)
+    else if (current_token.type == T_KEYWORD_ELSE)
     {
         /* if a previous if statement passed, no need to check else block */
-        if (*take_branch_else == false)
+        if (*should_do_else_statement == false)
         {
             /* if token is else statement and we did if block mark it complete */
             *is_if_done = true;
