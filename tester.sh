@@ -20,20 +20,6 @@ while read line; do
     ./mini $line
 done < $list
 
-
-# while read -r line;
-# do
-#     $PROG_NAME $line > out.txt
-#     diff -q out.txt $line.out
-#     if [ $? -eq 0 ]; then
-#         echo "Test passed for $line"
-#     else
-#         echo "Test failed for $line"
-#     fi
-# done < $list
-# # remove list.txt
-# rm list.txt
-
 # for each file in the list
 while read line
 do
@@ -56,7 +42,7 @@ do
 done < "$list"
 
 # delete the list file
-
+rm list
 
 # delete the output file
 

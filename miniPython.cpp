@@ -5,8 +5,6 @@
 #include <map>
 #include <unordered_map>
 
-
-
 #define STRING "STRING"
 #define INT "INT"
 #define LIST "LIST"
@@ -203,6 +201,8 @@ public:
     };
 };
 
+
+// TODO:There may be a need to come here and add more classes for the AST
 class Parser
 {
 public:
@@ -274,6 +274,7 @@ int main(int argc, char **argv)
         {
             continue;
         }
+        // TODO:ignore any parts of lines that follow a comment symbol
 
         if (line[line.length() - 1] == '\0')
         {
@@ -300,6 +301,8 @@ int main(int argc, char **argv)
             &symbol_table);
 
         lexer.run_lexer(line);
+
+        // TODO:investigate this part here and see if it is needed
         Parser parser = Parser(&tokenVector,
                                &symbol_table,
                                &should_do_if_statement,
@@ -387,7 +390,7 @@ void Lexer::make_tokens(std::string line_to_lex)
             token.value = str_formed;
             tokenVector->push_back(token);
         }
-
+        // TODO: THIS BUILDS the STRING literals
         /* check if the current char is a quotation  */
         else if (line_to_lex[i] == '\"')
         {
@@ -503,6 +506,7 @@ void Lexer::make_tokens(std::string line_to_lex)
             }
         }
 
+       // TODO: //this should work on the = or ==
         // check if current char is = or == sign 
         else if (line_to_lex[i] == '=')
         {
@@ -597,7 +601,7 @@ void Lexer::make_tokens(std::string line_to_lex)
             tokenVector->push_back(token);
         }
 
-        /* check if current char is plus sign */
+        /* check if current char is minus sign */
         else if (line_to_lex[i] == '-')
         {
             Token token;
@@ -747,6 +751,7 @@ FactorNode *Parser::factor()
                       << std::endl;
         }
 
+        // TODO: HERE WE DO BASIC LIST ACCESS OPERATIONS
         /* if variable is a list and we are trying to access its elements */
         if (variable_data->second.type == LIST &&
             (*tokenVector)[current_token_index + 1].type ==
@@ -757,6 +762,7 @@ FactorNode *Parser::factor()
 
             std::string list_value = variable_data->second.value;
 
+            // TODO:This is the starting index of the list
             //start index
             advance_current_token_index();
 
@@ -792,6 +798,7 @@ FactorNode *Parser::factor()
                 stop_index = -1;
             }
             /* if slicing into list */
+            // TODO: This is the slicing part of the Parser
             else if (current_token.type == T_COLON)
             {
 
@@ -818,7 +825,7 @@ FactorNode *Parser::factor()
                     stop_index = list_to_access.size();
                 }
             }
-
+            // TODO: This does single index values from lists
             //get that one value from the list
             if (one_element_access)
             {
