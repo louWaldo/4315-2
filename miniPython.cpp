@@ -44,7 +44,6 @@ class Lexer
 {
 public:
     std::vector<Token>* tokenVector;
-    std::unordered_map<std::string, Token>* symbolTable;
     Lexer();
     // will lex the input file line by line and make tokens 
     void run_lexer(std::string instruction);
@@ -149,8 +148,7 @@ int main(int argc, char **argv)
                 continue;
         }
 
-        else if (whitespace_else == false &&
-                 whitespace_done == true)
+        else if (whitespace_else == false && whitespace_done == true)
         {
             if (line[0] == ' ')
                 continue;
@@ -164,7 +162,6 @@ int main(int argc, char **argv)
         std::vector<Token> tokenVector;
         Lexer lexer;
         lexer.tokenVector = &tokenVector;
-        lexer.symbolTable = &symbolTable;
         lexer.run_lexer(line);
 
         Parser parser;
