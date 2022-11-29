@@ -15,7 +15,7 @@ head1 = [100]
 head2 = [300]
 if x <= 1:
     listD = head1 + listA + listB + listC  
-    print(listD)
+    print("listD: ",listD)
 else:
     listA = head2 + listA + listB + listC  
-    print(listA)
+    print("listA: ",listA)

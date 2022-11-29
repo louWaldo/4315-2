@@ -1,3 +1,5 @@
+# list, function
+
 def IncrementIterator(itr):
     itr = itr + 1
     return itr
@@ -10,6 +12,6 @@ i = 0
 i = IncrementIterator(i)
 
 #print
+print("i=",i)
 element = elements[i]
-print(element)
-
+print("ith element=",element)

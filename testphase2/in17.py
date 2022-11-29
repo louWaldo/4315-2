@@ -7,14 +7,13 @@ def add(x,y):
  z=x+y
  return z
 
-
-# TA can change these values 
+# TA can change these values to negative, positive
 x=1
-y=1
+y=0
 sum=add(x,y)
 
 if sum<1:
-  sum=1000
+  sum=-1
 else:
   if x<0:
     sum=sum+1

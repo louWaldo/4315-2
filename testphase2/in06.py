@@ -1,3 +1,4 @@
+# sum all list heads
 listX = [5,3,2,7,8,9]
 listY = [5,2,7,8,6,8]
 listZ = [5,4,6,5,2,8]
@@ -10,8 +11,6 @@ listC = [10,4,6,5,2,8]
 
 sum2 = listA[0] + listB[0] + listC[0]
 
-
 sums = sum1 + sum2
-
 
 print(sums)

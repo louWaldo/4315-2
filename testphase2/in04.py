@@ -1,4 +1,3 @@
-
 #Initialize list
 listX = [1,2,3,4,5]
 ListY = [7,8,9,10]
@@ -23,4 +22,4 @@ listZ[3] = listZ[3] + x
 if x <= 3:
     print(x)
 else:
-    print(listZ)
+    print("listZ: ",listZ)

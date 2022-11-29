@@ -1,7 +1,7 @@
 def append(listX,x):
     listTemp = [x,x,x]
-    listX = listX + listTemp
-    return listX
+    listTemp2 = listX + listTemp
+    return listTemp2
 
 def add(x,y):
     return x + y
@@ -28,8 +28,4 @@ x = increment(x)
 x = add(x,y)
 listX = append(listX,x)
 
-
-print(listX)
-
-
-
+print("listX: ", listX)

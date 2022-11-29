@@ -1,6 +1,5 @@
 #Return list at index
-def getElement(index):
-    data = [100,99,88,77,66,65,72,53,1,134,23,51,38,50,6]
+def getElement(data,index):
     element = data[index]
     return element
 
@@ -9,19 +8,24 @@ def increment(val):
     val = val + 1
     return val
 
-listA = [1,2,3]
-idx = 0
+data = [100,99,88,77,66,65,72,53,1,134,23,51,38,50,6]
 
-a = getElement(idx)
-listA[0] = listA[0] + a
+a = getElement(data,0)
+l= [1,2,3]
+l = l + [a]
 
+print("l: ",l)
 
-idx = increment(idx)
-a = getElement(idx)
-listA[1] = listA[1] + a
+h=0
+# insert at head
+l= [h]+l
+print("l: ",l)
 
-idx = increment(idx)
-a = getElement(idx)
-listA[2] = listA[2] + a
+e=100
+# append at end
+l= l+[e]
+print("l: ",l)
 
-print("A: ",listA)
+# print string length
+listlen=len(l)
+print("listlen",listlen)
