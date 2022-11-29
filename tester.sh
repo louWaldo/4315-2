@@ -23,15 +23,30 @@ while read line; do
     name=$(echo $line )
     actual=$(python3 $line)
     out=$($PROG_NAME $line)
-    printf "%s\n %s \n\n" "$name" "$actual" >> pyout.txt
-    printf "%s\n %s \n\n" "$name" "$out" >> output.txt
 
-    if [ out = actual ]
+
+# ${#string}
+    if [ ${#actual} -ge 1 ];
+    then
+        printf "%s\n %s \n\n" "$name" "$actual" >> pyout.txt
+        printf "%s\n %s \n\n" "$name" "$out" >> output.txt
+    else
+        actual="error"
+        printf "%s\n %s \n\n" "$name" "$actual" >> pyout.txt
+        printf "%s\n %s \n\n" "$name" "$out" >> output.txt
+    fi
+
+    if [[ $out = $actual ]];
     then
         echo -e "Test $name ${green}Passed${clear}"
     else
         echo -e "Test $name ${red}Failed${clear}"
     fi
+
+    
+    
+
+    
 
 done < $list
 
