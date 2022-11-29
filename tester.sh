@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# make a list of all files in testpahse folders
+clear
 
 PROG_NAME='./mini'
 phase2='./testphase2'
@@ -8,7 +8,6 @@ phase2='./testphase2'
 # Set the color variable
 green='\033[0;32m'
 red='\033[0;31m'
-# Clear the color after that
 clear='\033[0m'
 
 rm 'output.txt'
@@ -20,7 +19,6 @@ do
 done > list.txt
 
 list='list.txt'
-# compare the outputs, if they are the same show color green else show red
 while read line; do
     name=$(echo $line )
     actual=$(python3 $line)
@@ -37,30 +35,7 @@ while read line; do
 
 done < $list
 
-
-
-# delete the list file
-rm list
-
-# delete the output file
-
+rm 'list.txt'
 
 # exit the script
 exit 0
-
-
-
-
-#     # # get the expected output
-#     # 
-#     # expected=$(echo "pyout.txt")
-#     # # get the actual output
-#     # actual=$(echo "output.txt")
-#     # # compare the expected and actual outputs
-#     # if [ "$actual" = "$expected" ]
-#     # then
-#     #     echo "Test $name passed"
-#     # else
-#     #     echo "Test $name failed"
-#     # fi
-# done < "$list"
