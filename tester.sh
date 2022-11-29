@@ -25,7 +25,6 @@ while read line; do
     out=$($PROG_NAME $line)
 
 
-# ${#string}
     if [ ${#actual} -ge 1 ];
     then
         printf "%s\n %s \n\n" "$name" "$actual" >> pyout.txt
@@ -42,10 +41,6 @@ while read line; do
     else
         echo -e "Test $name ${red}Failed${clear}"
     fi
-
-    
-    
-
     
 
 done < $list

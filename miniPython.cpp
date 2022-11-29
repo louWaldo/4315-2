@@ -31,6 +31,8 @@
 #define GREATER_THAN_EQUALS "GREATER_THAN_OR_EQUAL"
 #define STRING "STRING"
 #define LIST "LIST"
+#define DEF "def"
+#define WHITE_SPACE "W_SPACE"
 
 class Token
 {
@@ -69,6 +71,7 @@ public:
     /*
     used for nesting, either a term will be a factor node
     or a binary node indicating two number operation
+    or a node indicating a function definition
     */
     TermNode *left_binary_term;
     Token op;
@@ -163,7 +166,8 @@ int main(int argc, char **argv)
         Lexer lexer;
         lexer.tokenVector = &tokenVector;
         lexer.run_lexer(line);
-
+        lexer.print_tokenVector();
+/*
         Parser parser;
         parser.tokenVector = &tokenVector;
         parser.symbolTable = &symbolTable;
@@ -174,9 +178,12 @@ int main(int argc, char **argv)
 
         parser.advance_current_token_index();
         parser.run_parser(line);
+        */
         whitespace_if = true;
     }
+    
     input.close();
+    
 
     return 0;
 };
@@ -279,6 +286,26 @@ void Lexer::make_tokens(std::string instruction)
                 token.type = PRINT;
                 token.value = subStr;
                 tokenVector->push_back(token);
+            }
+            else if (subStr == DEF)
+            {
+                // TODO: make sure that the next thing in the line is a whitespace for syntax
+                Token token;
+                token.type = DEF;
+                token.value = subStr;
+                tokenVector->push_back(token);
+                if (instruction[i + 1] != ' ')
+                {
+                    std::cout << "Syntax Error: expected whitespace after def" << std::endl;
+                    std::cout << "Syntax error: expected whitespace after def" << std::endl;
+                    exit(1);
+                }
+                else if (instruction[i + 1] == ' '){
+                    Token token;
+                    token.type = WHITE_SPACE;
+                    token.value = " ";
+                    tokenVector->push_back(token);
+                }
             }
             
             else
@@ -459,6 +486,18 @@ FactorNode *Parser::factor()
     FactorNode *factor_node = new FactorNode();
     factor_node->token = Token();
 
+    if (current_token.type == DEF)
+    {
+        factor_node->token = current_token;
+        advance_current_token_index();
+        if (current_token.type == IDENTIFIER){
+            factor_node->token = current_token;
+            advance_current_token_index();
+
+        }
+
+    }
+
     // if its a variable, get its value 
     if (current_token.type == IDENTIFIER)
     {
@@ -468,13 +507,13 @@ FactorNode *Parser::factor()
             // variable doesnt exist, undefined error 
             std::cout << "error, undefined variable \n";
         }
-
+        //TODO: Check here for list slicing and accessing
         // if variable is a list and we are trying to access its elements 
         if (variable_data->second.type == LIST && (*tokenVector)[current_token_index + 1].type == L_BRACK)
         {
             //left bracket
             advance_current_token_index();
-            //std::cout << variable_data->first << "  " << variable_data->second.type << variable_data->second.value << "\n";
+            std::cout << variable_data->first << "  " << variable_data->second.type << variable_data->second.value << "\n";
             std::string list_value = variable_data->second.value;
 
             //start index
@@ -496,6 +535,7 @@ FactorNode *Parser::factor()
                 }
                 list_to_access.push_back(element);
             }
+            //TODO: Potentially where we stop when slicing to modify??
             //stop index in list we are accessing 
             int stop_index;
 
@@ -503,6 +543,7 @@ FactorNode *Parser::factor()
             bool one_element_access = false;
             //either colon or right bracket
             advance_current_token_index();
+            //TODO: lst[1]???
             // if only one index to get element from 
             if (current_token.type == R_BRACK)
             {
@@ -535,7 +576,7 @@ FactorNode *Parser::factor()
                     factor_node->token = t;
                 }
             }
-
+            //WE copy the last of the list from the index?
             //copy rest of the list
             if (!one_element_access)
             {
