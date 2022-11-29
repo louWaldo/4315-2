@@ -1,3 +1,7 @@
-x = 2
-x = x + 10
-print(x)
+def test(x):
+    return x + 1
+
+y = 1
+
+test(y)
+

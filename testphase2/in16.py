@@ -16,6 +16,7 @@ if i <=5 :
     if i == 1:
         if i == 2:
             a=a+1
+            # could this be the error?
             b=b*a
             c=a+b
             print("c: ",c)
