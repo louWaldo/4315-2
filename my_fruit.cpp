@@ -159,7 +159,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         {
 
             node->type = ASSIGMENT; 
-            Node expression = evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); //Parse expression after equal sign
+            Node expression = evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); 
 
             node->expression.push_back(expression); 
             return *node; 
@@ -174,7 +174,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             operation.value = "+"; 
 
             operation.parameters.push_back(*node); 
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after ADD sign to parameters
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); 
 
             return operation;
         }
