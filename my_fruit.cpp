@@ -6,11 +6,56 @@
 #include <algorithm>
 #include <unordered_map>
 #include <filesystem>
-#include "lexer.h"
+#define OPERATOR "OPERATOR"
+#define NEW_LINE "NEW_LINE"
+#define INDENT "INDENT"
+#define EQUALS "EQUAL"
+#define EQUAL_EQUAL "EQUAL_EQUAL"
+#define COLON "COLON"
+#define COMMA "COMMA"
+#define SPACE "SPACE"
+#define ASSIGMENT "ASSIGMENT"
+#define OPERATION "OPERATION"
+#define INT "INT"
+#define STRING "STRING"
+#define BOOLEAN "BOOLEAN"
+#define NULL_ID "NULL"
+#define LIST "LIST"
+#define LIST_INDEX "LIST_INDEX"
+#define IDENTIFIER "IDENTIFIER"
+#define FUNCTION_CALL "FUNCTION_CALL"
+#define EXPRESSION "EXPRESSION"
+#define BODY "BODY"
+#define FUNCTION "FUNCTION"
+#define PARAMETER "PARAMETER"
+#define RETURN "RETURN"
+#define ERROR "ERROR"
+#define ADD "ADD"
+#define LEFT_PAREN "LEFT_PAREN"
+#define RIGHT_PAREN "RIGHT_PAREN"
+#define LEFT_BRACK "LEFT_BRACK"
+#define RIGHT_BRACK "RIGHT_BRACK"
+#define TRUE "TRUE"
+#define FALSE "FALSE"
+#define IDENTIFIER "IDENTIFIER"
+#define STRING "STRING"
+#define PRINT "PRINT"
+#define IF "IF"
+#define ELSE "ELSE"
+#define FUNCTION_DEFINITION "FUNCTION_DEFINITION"
+#define RETURN "RETURN"
+#define NEW_CHUNK "NEW_CHUNK"
+#define COMMENT "COMMENT"
 
-int linesToSkip = 0; //Used with function definitions, if and else statements so that those lines are nor parsed several times
+class token 
+{
+public:
+    std::string type;
+    std::string value;
+};
 
-//Each AST node can have children like the program root node or functions. Paarameters like conditions on if statements and arguments in functions. And Expressions which involves assigments. operations, function calls and so on.
+int fun_if_else = 0; 
+
 class Node
 {
 public:
@@ -25,7 +70,6 @@ public:
     Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken);
 };
 
-//Interpreter Variables functions and types. Used for evaluation of the AST
 class Symbol
 {
 public:
@@ -36,9 +80,11 @@ public:
     std::vector<int> list;
     Node function;
     int line;
-    Symbol traverse(Node node);
-    std::unordered_map<std::string, Symbol> symTable; //Stores all variables from the outer scope
+    Symbol evaulate(Node node);
+    std::unordered_map<std::string, Symbol> symTable; 
 };
+
+std::vector<std::vector<token>> lexer(std::string);
 
 
 int main(int argc, char* argv[]) 
@@ -59,108 +105,89 @@ int main(int argc, char* argv[])
 
     for (int i=0; i < root->children.size(); i++) 
     {
-        sym->traverse(root->children[i]);
+        sym->evaulate(root->children[i]);
     }
     return 0;
 }
 
 
-//TREE PARSING
 Node Node::runParser(std::vector<std::vector<token>> tokens) 
 {
-    //create root node: <program>
     Node* root = new Node;
-    root->type = "PROGRAM";
-    
-    int line = 0; //current line
-    int tokenIndex = 0; //current token index
-    
-    token currToken; //current token
+    int line = 0; 
+    int tokenIndex = 0; 
+    token currToken; 
 
-    //Iterate through all children in program
     while (line < tokens.size()) 
     {
-        currToken = tokens[line][tokenIndex]; //Get current token
+        currToken = tokens[line][tokenIndex]; 
         Node* node = new Node;
-        *node = evaluate(tokens, line, tokenIndex, currToken); //Parse token
-        root->children.push_back(*node); //Add statement to root
-        if(linesToSkip == 0)
+        *node = evaluate(tokens, line, tokenIndex, currToken); 
+        root->children.push_back(*node); 
+        if(fun_if_else == 0)
         {
             line++;
         }
         else
         {
-            line = linesToSkip + line;
+            line = fun_if_else + line;
         }
 
-        linesToSkip = 0; //Reset linesToSkip
-        tokenIndex = 0; //Reset tokenIndex
+        fun_if_else = 0; 
     }
 
-    return *root; //Return AST
+    return *root; 
 }
 
-//Recursive AST parse function
 Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken) 
 {
-    //Create AST node
     Node* node = new Node;
-
-    //<IDENTIFIER>
-    //If token is an identifier
     if (currToken.type == IDENTIFIER) 
     {
 
-        node->type = IDENTIFIER; //Set type
-        node->symbol = currToken.value; //Set symbol
+        node->type = IDENTIFIER; 
+        node->symbol = currToken.value;
 
-        //If the line only contains an identifier or if the identifier is the last element in the line, return identifier
-        if (tokens[line].size() == 1 || tokenIndex == tokens[line].size() - 1 || tokens[line][tokenIndex + 1].type == BLOCK_END)
+        if (tokens[line].size() == 1 || tokenIndex == tokens[line].size() - 1 || tokens[line][tokenIndex + 1].type == NEW_CHUNK)
         {
             return *node;
         }
         
-        //Obtain following token to the identifier
         currToken = tokens[line][tokenIndex+1];
 
-        //<IDENTIFIER><EQUALS>
-        //if following token is an equal sign
         if (currToken.type == EQUALS) 
         {
 
-            node->type = ASSIGMENT; //Set type
+            node->type = ASSIGMENT; 
             Node expression = evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); //Parse expression after equal sign
 
-            node->expression.push_back(expression); //Add expression to assigment node
+            node->expression.push_back(expression); 
             return *node; 
         }
 
-        //<IDENTIFIER><PLUS>
-        //if following token is a plus sign
-        if (currToken.type == PLUS) 
+
+        if (currToken.type == ADD) 
         {
 
             Node operation = Node();
-            operation.type = OPERATION; //Set type
-            operation.value = "+"; //Set value
+            operation.type = OPERATION; 
+            operation.value = "+"; 
 
-            operation.parameters.push_back(*node); //Add identifier to parameters
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after plus sign to parameters
+            operation.parameters.push_back(*node); 
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after ADD sign to parameters
 
             return operation;
         }
 
-        //<IDENTIFIER><OPEN_PARENTHESIS>
-        //if following token is an open parentheses
-        if (currToken.type == OPEN_PARENTHESES) 
+        if (currToken.type == LEFT_PAREN) 
         {
 
             Node functionCall = Node();
-            functionCall.type = FUNCTION_CALL; //Set type
-            functionCall.symbol = node->symbol; //Set symbol
-            int tokenIncrement = 2; //Increment to skip open parentheses
-            currToken = tokens[line][tokenIndex+tokenIncrement]; //Get next token
-            while (currToken.type != CLOSE_PARENTHESES) 
+            functionCall.type = FUNCTION_CALL; 
+            functionCall.symbol = node->symbol; 
+            int tokenIncrement = 2;
+            currToken = tokens[line][tokenIndex + 2]; 
+            while (currToken.type != RIGHT_PAREN) 
             {
                 //Ignore commas
                 if (currToken.type == COMMA) 
@@ -170,31 +197,27 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
                     continue;
                 }
                 Node expression = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken); //parse parameter
-                functionCall.parameters.push_back(expression); //Add parameter to function call
-                tokenIncrement ++; //Increment to skip parameter
-                currToken = tokens[line][tokenIndex+tokenIncrement]; //Get next token
+                functionCall.parameters.push_back(expression); 
+                tokenIncrement ++; 
+                currToken = tokens[line][tokenIndex+tokenIncrement]; 
             }
             return functionCall;
         }
 
-        //<IDENTIFIER><CLOSE_PARENTHESIS>
-        //if following token is a close parentheses
-        if (currToken.type == CLOSE_PARENTHESES) 
+        
+        if (currToken.type == RIGHT_PAREN) 
         {
             return *node;
         }
 
-        //<IDENTIFIER><OPEN_BRACKET>
-        if (currToken.type == OPEN_BRACKET) 
+        if (currToken.type == LEFT_BRACK) 
         {
             Node listIndex = Node();
-            listIndex.type = LIST_INDEX; //Set type
-            listIndex.symbol = node->symbol; //Set symbol
-            listIndex.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after open bracket to parameters
-
-            int tokenIncrement = 2; //Increment to skip open bracket
-
-            while (currToken.type != CLOSE_BRACKET) 
+            listIndex.type = LIST_INDEX; 
+            listIndex.symbol = node->symbol; 
+            listIndex.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); 
+            int tokenIncrement = 2; 
+            while (currToken.type != RIGHT_BRACK) 
             { 
                 if (tokens[line].size() > tokenIndex + tokenIncrement) 
                 {
@@ -216,8 +239,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
                 return listIndex;
             }
             
-            //<IDENTIFIER><OPEN_BRACKET>...<CLOSE_BRACKET><EQUALS>
-            //If following token is an equal sign
             if (currToken.type == EQUALS) 
             {
                 node->type = ASSIGMENT;
@@ -227,8 +248,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
                 return *node;
             }
 
-            //<IDENTIFIER><OPEN_BRACKET>...<CLOSE_BRACKET><PLUS>
-            if (currToken.type == PLUS) 
+            if (currToken.type == ADD) 
             { 
                 Node operation = Node();
                 operation.type = OPERATION;
@@ -243,7 +263,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             return listIndex;
         }
 
-        //<IDENTIFIER><OPERATOR>
         if (currToken.type == OPERATOR) 
         {
 
@@ -257,21 +276,21 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             return operation;
         }
 
-        //<IDENTIFIER><OPEN_PARENTHESIS>
-        if (currToken.type == OPEN_PARENTHESES) 
+        if (currToken.type == LEFT_PAREN) 
         {
 
             Node functionCall = Node();
             functionCall.type = FUNCTION_CALL;
             functionCall.symbol = node->symbol;
 
-            //If the function call has parameters
             int tokenIncrement = 1;
             while (tokenIndex+2+tokenIncrement < tokens[line].size()) 
             {
                 currToken = tokens[line][tokenIndex+2+tokenIncrement];
-                //if end of parameters reached
-                if (currToken.type == CLOSE_PARENTHESES) break;
+                if (currToken.type == RIGHT_PAREN) 
+                {
+                    break;
+                }
 
                 functionCall.parameters.push_back(evaluate(tokens, line, tokenIndex+2+tokenIncrement, currToken));
             }
@@ -282,41 +301,35 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return *node;
     }
 
-    //<OPEN_PARENTHESIS>
-    //If token is an open parenthesis
-    if (currToken.type == OPEN_PARENTHESES) 
+    if (currToken.type == LEFT_PAREN) 
     {
 
         Node expression = Node();
         expression.type = EXPRESSION;
 
         int tokenIncrement = 1;
-        while (currToken.type != CLOSE_PARENTHESES) 
+        while (currToken.type != RIGHT_PAREN) 
         {
-            //Get next token
             currToken = tokens[line][tokenIndex+tokenIncrement];
 
-            //Check if it is a comma if it is skip it
             if (currToken.type == COMMA) 
             {
                 tokenIncrement++;
                 currToken = tokens[line][tokenIndex+tokenIncrement];
             }
 
-            //Check if it is a close parenthesis if it is break
-            if (currToken.type == CLOSE_PARENTHESES) break;
+            if (currToken.type == RIGHT_PAREN) 
+            {
+                break;
+            }
 
-            //Parse next token
             Node node = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
-            
-            //Add to parameters
             expression.expression.push_back(node);
             tokenIncrement++;
 
-            //move to the next comma or closing parenthesis
             for (int i = tokenIndex+tokenIncrement; i < tokens[line].size(); i++) 
             {
-                if (tokens[line][i].type == COMMA || tokens[line][i].type == CLOSE_PARENTHESES) {
+                if (tokens[line][i].type == COMMA || tokens[line][i].type == RIGHT_PAREN) {
                     break;
                 }
                 tokenIncrement ++;
@@ -327,35 +340,29 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return expression;
     }
 
-    //<OPEN BRACKET>
-    //If token is an open bracket
-    if (currToken.type == OPEN_BRACKET) 
+    if (currToken.type == LEFT_BRACK) 
     {
         Node list = Node();
         list.type = LIST;
         int tokenIncrement = 1;
 
-        while (currToken.type != CLOSE_BRACKET) 
+        while (currToken.type != RIGHT_BRACK) 
         {
-            //Get token
             currToken = tokens[line][tokenIndex+tokenIncrement];
 
-            //Check if it is a comma if it is skip it
             if (currToken.type == COMMA) 
             {
                 tokenIncrement++;
                 currToken = tokens[line][tokenIndex+tokenIncrement];
             }
 
-            //Check if it is a close bracket if it is break
-            if (currToken.type == CLOSE_BRACKET) break;
+            if (currToken.type == RIGHT_BRACK)
+            {
+                break;
+            } 
 
-            //Parse next token
             Node element = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
-
-            //Add to list expression
             list.expression.push_back(element);
-
             tokenIncrement++;
         }
 
@@ -370,7 +377,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             return list;
         }
 
-        if (currToken.type == PLUS && tokens[line][tokenIndex+tokenIncrement+1].type != BLOCK_END) 
+        if (currToken.type == ADD && tokens[line][tokenIndex+tokenIncrement+1].type != NEW_CHUNK) 
         {
             Node operation = Node();
             operation.type = OPERATION;
@@ -383,15 +390,12 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         }
     }
 
-    //<NUMBER>
-    //If token is a number
-    if (currToken.type == NUMBER) 
+    if (currToken.type == INT) 
     {
 
-        node->type = NUMBER;
+        node->type = INT;
         node->value = currToken.value;
 
-        //If the line only contains a number or if the number is the last element in the line
         if (tokens[line].size() == 1 || tokenIndex == tokens[line].size() - 1)
         {
             return *node;
@@ -399,8 +403,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
 
         currToken = tokens[line][tokenIndex+1];
 
-        //<NUMBER><PLUS>
-        if (currToken.type == PLUS) 
+        if (currToken.type == ADD) 
         {
 
             Node operation = Node();
@@ -416,8 +419,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return *node;
     }
 
-    //<STRING>
-    //If token is a string
     if (currToken.type == STRING) 
     {
         node->type = STRING;
@@ -425,8 +426,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return *node;
     }
 
-    //<BOOLEAN>
-    //If token is a boolean
     if (currToken.type == TRUE || currToken.type == FALSE) 
     {
         node->type = BOOLEAN;
@@ -434,19 +433,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return *node;
     }
 
-    //<NULL>
-    //If token is null
-    if (currToken.type == NULL_IDENTIFIER) 
-    {
-
-        node->type = NULL_ID;
-        node->value = currToken.value;
-
-        return *node;
-    }
-
-    //<PRINT>
-    //If token is print
     if (currToken.type == PRINT) 
     {
 
@@ -459,7 +445,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
     }
 
     
-    //<IF>
     if (currToken.type == IF) 
     {
 
@@ -469,7 +454,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
 
         ifStatement.parameters.push_back(evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
 
-        //Check for colon and new line
         int tokenIncrement = 2;
         for (int i = tokenIndex+tokenIncrement; i<tokens[line].size(); i++) 
         {
@@ -480,24 +464,22 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             } 
         }
         
-        //Add as childs next lines until end block found
         line ++;
         currToken = tokens[line][tokenIndex];
-        while (currToken.type != BLOCK_END) 
+        while (currToken.type != NEW_CHUNK) 
         {
-            linesToSkip ++;
+            fun_if_else ++;
             Node node = evaluate(tokens, line, tokenIndex, currToken);
             ifStatement.children.push_back(node);
             token lastElement = tokens[line][tokens[line].size()-1];
             line += 1 + node.children.size();
-            if (lastElement.type == BLOCK_END) 
+            if (lastElement.type == NEW_CHUNK) 
             {
                 break;
             }
             currToken = tokens[line][tokenIndex];
         }
         
-        //If next token is Else, add else as expression
         currToken = tokens[line][tokenIndex];
         if (currToken.type == ELSE) 
         {
@@ -506,17 +488,17 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
             elseStatement.symbol = currToken.value;
 
             line ++;
-            linesToSkip ++;
+            fun_if_else ++;
             currToken = tokens[line][tokenIndex];
-            while (currToken.type != BLOCK_END) 
+            while (currToken.type != NEW_CHUNK) 
             {
-                linesToSkip ++;
+                fun_if_else ++;
                 if(line > tokens.size()) break;
                 Node node = evaluate(tokens, line, tokenIndex, currToken);
                 elseStatement.children.push_back(node);
                 token lastElement = tokens[line][tokens[line].size()-1];
                 line += 1 + node.children.size();
-                if (lastElement.type == BLOCK_END) break;
+                if (lastElement.type == NEW_CHUNK) break;
                 if (tokens.size() > line) 
                 {
                     currToken = tokens[line][tokenIndex];
@@ -529,20 +511,14 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return ifStatement;
     }
 
-    //<FUNCTION_DEFINITION>
     if (currToken.type == FUNCTION_DEFINITION) 
     {
 
         Node function = Node();
         function.type = FUNCTION;
-
-        //Get funcion name
         int tokenIncrement = 1;
         currToken = tokens[line][tokenIndex+tokenIncrement];
-
         function.symbol = currToken.value;
-
-        //Get parameters
         tokenIncrement ++;
         currToken = tokens[line][tokenIndex+tokenIncrement];
         while (currToken.type != COLON) 
@@ -560,16 +536,16 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         }
         
         line ++;
-        linesToSkip ++;
+        fun_if_else ++;
         currToken = tokens[line][tokenIndex];
-        while (currToken.type != BLOCK_END) 
+        while (currToken.type != NEW_CHUNK) 
         {
-            linesToSkip ++;
+            fun_if_else ++;
             Node funcStatement = evaluate(tokens, line, tokenIndex, currToken);
             function.children.push_back(funcStatement);
             token lastElement = tokens[line][tokens[line].size()-1];
             line += 1 + funcStatement.children.size();
-            if (lastElement.type == BLOCK_END) break;
+            if (lastElement.type == NEW_CHUNK) break;
             if (tokens.size() > line) 
             {
                 currToken = tokens[line][tokenIndex];
@@ -578,8 +554,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         return function;
     }
 
-    //<BLOCK_END>
-    if (currToken.type == BLOCK_END) 
+    if (currToken.type == NEW_CHUNK) 
     {
         if (tokens[line].size() > 1) 
         {
@@ -591,7 +566,6 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
         }
     }
 
-    //<RETURN>
     if (currToken.type == RETURN) 
     {
 
@@ -611,7 +585,7 @@ Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenI
 
 
 
-Symbol Symbol::traverse(Node node) 
+Symbol Symbol::evaulate(Node node) 
 {
     if (node.type == ASSIGMENT) 
     {
@@ -621,7 +595,7 @@ Symbol Symbol::traverse(Node node)
         symbol.line = node.line;
 
 
-        symbol = traverse(node.expression[0]);
+        symbol = evaulate(node.expression[0]);
         symTable[symbolName] = symbol;
 
         return symbol;
@@ -643,8 +617,8 @@ Symbol Symbol::traverse(Node node)
         {
             for (int i=0; i<node.expression[0].expression.size(); i++) 
             {
-                Symbol toPrint = traverse(node.expression[0].expression[i]);
-                if (toPrint.type == NUMBER)
+                Symbol toPrint = evaulate(node.expression[0].expression[i]);
+                if (toPrint.type == INT)
                 {
                     int intPrint = toPrint.integer;
                     std::cout << intPrint << " ";
@@ -667,25 +641,23 @@ Symbol Symbol::traverse(Node node)
                 }
             }
 
-            std::cout << endl;
+            std::cout << std::endl;
         }
 
         if (node.symbol == "if") 
         {
-            Symbol condition = traverse(node.parameters[0]);
+            Symbol condition = evaulate(node.parameters[0]);
             
             if (condition.boolean) 
             {
-                //If condition is true
                 for (int i = 0; i < node.children.size(); i++) 
                 {
-                    traverse(node.children[i]);
+                    evaulate(node.children[i]);
                 }
             } 
             else if (node.expression.size() > 0) 
             {
-                //if condition is false
-                traverse(node.expression[0]);
+                evaulate(node.expression[0]);
             }
         }
 
@@ -693,7 +665,7 @@ Symbol Symbol::traverse(Node node)
         {
             for (int i = 0; i < node.children.size(); i++)
             {
-                traverse(node.children[i]);
+                evaulate(node.children[i]);
             }
         }
 
@@ -701,22 +673,20 @@ Symbol Symbol::traverse(Node node)
         {
             Node function = symTable[node.symbol].function;
 
-            //Get parameters
             for (int i = 0; i < function.parameters.size(); i++) 
             {
                 std::string parameterName = function.parameters[i].symbol;
-                Symbol parameterValue = traverse(node.parameters[i]);
+                Symbol parameterValue = evaulate(node.parameters[i]);
                 symTable[parameterName] = parameterValue;
             }
 
-            //Execute function
             for (int i = 0; i < function.children.size(); i++) 
             {
                 if (function.children[i].type == RETURN) 
                 {
-                    return traverse(function.children[i]);
+                    return evaulate(function.children[i]);
                 }
-                traverse(function.children[i]);
+                evaulate(function.children[i]);
             }
             return Symbol();
         }
@@ -724,14 +694,11 @@ Symbol Symbol::traverse(Node node)
 
     if (node.type == OPERATION) 
     {
-        Symbol term1 = traverse(node.parameters[0]);
-        Symbol term2 = traverse(node.parameters[1]);
-
-
+        Symbol term1 = evaulate(node.parameters[0]);
+        Symbol term2 = evaulate(node.parameters[1]);
         Symbol result = Symbol();
         result.line = node.line;
 
-        //SUM
         if (node.value == "+") 
         {
             if (term1.type == LIST && term2.type == LIST) 
@@ -770,19 +737,14 @@ Symbol Symbol::traverse(Node node)
                 return res;
             }
 
-
-
-
-
-
-            if(term1.type == NUMBER && term2.type == NUMBER)
+            if(term1.type == INT && term2.type == INT)
             {
-                result.type = NUMBER;
+                result.type = INT;
                 result.integer = term1.integer + term2.integer;
                 return result;
             }
 
-            if((term1.type == NUMBER && term2.type != NUMBER) || (term1.type != NUMBER && term2.type == NUMBER) )
+            if((term1.type == INT && term2.type != INT) || (term1.type != INT && term2.type == INT))
             {
                 std::cout << "error, cannot add number to non-number\n";
             }
@@ -793,7 +755,6 @@ Symbol Symbol::traverse(Node node)
             
         }
 
-        //COMPARISON
         if (node.value == "==") 
         {
             result.type = BOOLEAN;
@@ -812,7 +773,6 @@ Symbol Symbol::traverse(Node node)
             return result;
         }
 
-        //GREATER THAN
         if (node.value == ">") 
         {
             result.type = BOOLEAN;
@@ -820,7 +780,6 @@ Symbol Symbol::traverse(Node node)
             return result;
         }
 
-        //LESS THAN
         if (node.value == "<") 
         {
             result.type = BOOLEAN;
@@ -828,7 +787,6 @@ Symbol Symbol::traverse(Node node)
             return result;
         }
 
-        //GREATER THAN OR EQUAL
         if (node.value == ">=") 
         {
             result.type = BOOLEAN;
@@ -836,7 +794,6 @@ Symbol Symbol::traverse(Node node)
             return result;
         }
 
-        //LESS THAN OR EQUAL
         if (node.value == "<=") 
         {
             result.type = BOOLEAN;
@@ -844,7 +801,6 @@ Symbol Symbol::traverse(Node node)
             return result;
         }
 
-        //DIFFERENT
         if (node.value == "!=") 
         {
             result.type = BOOLEAN;
@@ -856,13 +812,13 @@ Symbol Symbol::traverse(Node node)
 
     if (node.type == EXPRESSION) 
     {
-        return traverse(node.expression[0]);
+        return evaulate(node.expression[0]);
     }
 
-    if (node.type == NUMBER) 
+    if (node.type == INT) 
     {
         Symbol symbol = Symbol();
-        symbol.type = "NUMBER";
+        symbol.type = "INT";
         symbol.integer = stoi(node.value);
         symbol.line = node.line;
         return symbol;
@@ -893,7 +849,7 @@ Symbol Symbol::traverse(Node node)
         symbol.line = node.line;
         for (int i=0; i<node.expression.size(); i++) 
         {
-            Symbol listElement = traverse(node.expression[i]);
+            Symbol listElement = evaulate(node.expression[i]);
             symbol.list.push_back(listElement.integer);
         }
         return symbol;
@@ -914,17 +870,17 @@ Symbol Symbol::traverse(Node node)
             Symbol symbol = symTable[node.symbol];
             if (node.expression.size() > 0) 
             {
-                Symbol parameter = traverse(node.parameters[0]);
-                Symbol expression = traverse(node.expression[0]);
+                Symbol parameter = evaulate(node.parameters[0]);
+                Symbol expression = evaulate(node.expression[0]);
                 symbol.list[parameter.integer] = expression.integer;
                 return symbol;
             } 
             else 
             {
                 Symbol result = Symbol();
-                result.type = NUMBER;
+                result.type = INT;
                 result.line = node.line;
-                result.integer = symbol.list[traverse(node.parameters[0]).integer];
+                result.integer = symbol.list[evaulate(node.parameters[0]).integer];
                 return result;
             }
         } 
@@ -932,7 +888,7 @@ Symbol Symbol::traverse(Node node)
 
     if (node.type == RETURN) 
     {
-        return traverse(node.expression[0]);
+        return evaulate(node.expression[0]);
     }
 
     if (node.type == IDENTIFIER) 
@@ -943,4 +899,378 @@ Symbol Symbol::traverse(Node node)
         } 
     }
     return Symbol();
+}
+
+std::vector<std::vector<token>> lexer(std::string input) 
+{
+    std::vector<std::vector<token>> tokens; 
+    std::vector<token> lineTokens; 
+    int currIndex = 0; 
+    int indentationLevel = 0; 
+    int indentationLength = 0; 
+    bool isIndent = false; 
+    int lastIndentationLength = 0; 
+    while (currIndex < input.length()) 
+    {
+        std::string subStr = ""; 
+        subStr += input[currIndex]; 
+
+        
+        if (input[currIndex] == '\n') 
+        {
+            if(isIndent) 
+            {
+                std::string indentation = "";
+
+                if (indentationLevel == 1 && indentationLength == 0)
+                {
+                    int index = 1;
+                    while (input[currIndex+index] == ' ') 
+                    {
+                        index ++;
+                        indentationLength ++;
+                    }
+                }
+
+                for (int i = 1; i <= indentationLength * indentationLevel; i++) 
+                {
+                    if (input[currIndex+i] == ' ') 
+                    {
+                        indentation += input[currIndex+i];
+                    } 
+                    else 
+                    {
+                        break;
+                    }
+                }
+                if (indentation.length() != 0 && indentation.length() % (indentationLength*indentationLevel) == 0) 
+                {
+                    currIndex += 1 + indentation.length();
+                    if (lineTokens.size() > 0) tokens.push_back(lineTokens);
+                    lineTokens.clear();
+                    continue;
+                }
+                
+                if (input[currIndex+1] == '\n') 
+                {
+                    currIndex ++;
+                    continue;
+                }
+                if (indentation.length() == 0 && indentationLevel > 1) 
+                {
+                    for (int i = 1; i < indentationLevel; i++) 
+                    {
+                        std::vector<token> breakLine;
+                        token t;
+                        t.type = NEW_CHUNK;
+                        t.value = NEW_CHUNK;
+                        breakLine.push_back(t);
+                        tokens.push_back(breakLine);
+                        indentationLevel --;
+                    }
+                }
+                
+                indentationLevel --;
+                if (indentationLevel == 0) isIndent = false; 
+                token t;
+                t.type = NEW_CHUNK;
+                t.value = "NEW_CHUNK";
+                lineTokens.push_back(t);
+                indentationLength = indentationLength * indentationLevel; 
+                currIndex += 1 + indentation.length(); 
+                tokens.push_back(lineTokens); 
+                lineTokens.clear(); 
+                continue;
+            }
+
+            currIndex ++; 
+            if (lineTokens.size()>0) 
+            {
+                tokens.push_back(lineTokens);
+                lineTokens.clear();
+            }
+            continue;
+        }
+
+        //check for comment or whitespace
+        if(input[currIndex] == '#' || input[currIndex] == ' ') 
+        {
+            currIndex ++;
+            continue;
+        }
+
+        //check for comma
+        if(input[currIndex] == ',') {
+            token t;
+            t.type = COMMA;
+            t.value = ",";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //check for colon
+        if(input[currIndex] == ':') {
+            token t;
+            t.type = COLON;
+            t.value = ":";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //equal and equal_equal
+        if (input[currIndex] == '=') 
+        {
+            currIndex ++;
+            if (input[currIndex] == '=') 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = "==";
+                lineTokens.push_back(t);
+                currIndex ++;
+                continue;
+            } 
+            else 
+            {
+                token t;
+                t.type = EQUALS;
+                t.value = "=";
+                lineTokens.push_back(t);
+                continue;
+            }
+        }
+
+        //greater, greater than
+        if (input[currIndex] == '>') 
+        {
+            currIndex ++;
+            if (input[currIndex] == '=') 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = ">=";
+                lineTokens.push_back(t);
+                currIndex ++;
+                continue;
+            } 
+            else 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = ">";
+                continue;
+            }
+        }
+
+        //less, less than
+        if (input[currIndex] == '<') 
+        {
+            currIndex ++;
+            if (input[currIndex] == '=') 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = "<=";
+                lineTokens.push_back(t);
+                currIndex ++;
+                continue;
+            } 
+            else 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = "<";
+                lineTokens.push_back(t);
+                continue;
+            }
+        }
+
+        //check not equal
+        if (input[currIndex] == '!') 
+        {
+            currIndex ++;
+            if (input[currIndex] == '=') 
+            {
+                token t;
+                t.type = OPERATOR;
+                t.value = "!=";
+                lineTokens.push_back(t);
+                currIndex ++;
+                continue;
+            } 
+        }
+
+        //check add
+        if (input[currIndex] == '+') 
+        {
+            token t;
+            t.type = ADD;
+            t.value = "+";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //check for parentheses
+        if (input[currIndex] == '(') 
+        {
+            token t;
+            t.type = LEFT_PAREN;
+            t.value = "(";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        if (input[currIndex] == ')') 
+        {
+            token t;
+            t.type = RIGHT_PAREN;
+            t.value = ")";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //checking for bracket
+        if (input[currIndex] == '[') 
+        {
+            token t;
+            t.type = LEFT_BRACK;
+            t.value = "[";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        if (input[currIndex] == ']') 
+        {
+            token t;
+            t.type = RIGHT_BRACK;
+            t.value = "]";
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //checking for string
+        if (input[currIndex] == '\"') 
+        {
+            std::string str = "";
+            currIndex ++;
+            while (input[currIndex] != '\"') 
+            {
+                str += input[currIndex];
+                currIndex ++;
+            }
+            token t;
+            t.type = STRING;
+            t.value = str;
+            lineTokens.push_back(t);
+            currIndex ++;
+            continue;
+        }
+
+        //INTEGER
+        if (isdigit(subStr[0])) 
+        {
+            std::string number = "";
+            while (isdigit(input[currIndex]) && currIndex < input.length()) 
+            {
+                number += input[currIndex];
+                currIndex ++;
+            }
+
+            token t;
+            t.type = INT;
+            t.value = number;
+            lineTokens.push_back(t);
+            continue;
+        }
+
+        //checking for identifier
+        if (isalpha(subStr[0])) 
+        {
+            std::string identifier = "";
+            while ((isalpha(input[currIndex]) || isdigit(input[currIndex])) && currIndex < input.length()) 
+            {
+                identifier += input[currIndex];
+                currIndex ++;
+            }
+
+            if (identifier == "print") 
+            {
+                token t;
+                t.type = PRINT;
+                t.value = "print";
+                lineTokens.push_back(t);
+            
+            } 
+            else if (identifier == "if")
+            {
+                isIndent = true;
+                indentationLevel ++;
+                token t;
+                t.type = IF;
+                t.value = "if";
+                lineTokens.push_back(t);
+            } 
+            else if (identifier == "else") 
+            {
+                isIndent = true;
+                indentationLevel ++;
+                token t;
+                t.type = ELSE;
+                t.value = "else";
+                lineTokens.push_back(t);
+            } 
+            else if (identifier == "def") 
+            {
+                indentationLevel ++;
+                isIndent = true;
+                token t;
+                t.type = FUNCTION_DEFINITION;
+                t.value = "def";
+                lineTokens.push_back(t);
+            } 
+            else if (identifier == "return") 
+            {
+                token t;
+                t.type = RETURN;
+                t.value = "return";
+                lineTokens.push_back(t);
+            } 
+            else if (identifier == "True") 
+            {
+                token t;
+                t.type = TRUE;
+                t.value = "true";
+                lineTokens.push_back(t);
+            } 
+            else if (identifier == "False") 
+            {
+                token t;
+                t.type = FALSE;
+                t.value = "false";
+                lineTokens.push_back(t);
+            }
+            
+            else 
+            {
+                token t;
+                t.type = IDENTIFIER;
+                t.value = identifier;
+                lineTokens.push_back(t);
+            }
+            continue;
+        }        
+    }
+
+    //add line tokens to tokens
+    if (lineTokens.size() > 0) {
+        tokens.push_back(lineTokens);
+    }
+    return tokens;
 }
