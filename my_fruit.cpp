@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <vector>
 #include <map>
 #include <sstream>
@@ -9,83 +8,66 @@
 #include <filesystem>
 #include "lexer.h"
 
-//AST Node Types
-
-
-using namespace std;
-
-
-
-
-
-
 int linesToSkip = 0; //Used with function definitions, if and else statements so that those lines are nor parsed several times
 
 //Each AST node can have children like the program root node or functions. Paarameters like conditions on if statements and arguments in functions. And Expressions which involves assigments. operations, function calls and so on.
 class Node
 {
-    public:
-        string type;
-        string value;
-        string symbol;
-        vector<Node> children;
-        vector<Node> parameters;
-        vector<Node> expression;
-        int line;
-        Node parseTree(vector<vector<token>> tokens);
-        Node parseStatement(vector<vector<token>> tokens, int line, int tokenIndex, token currToken);
-
+public:
+    int line;
+    std::string type;
+    std::string value;
+    std::string symbol;
+    std::vector<Node> children;
+    std::vector<Node> parameters;
+    std::vector<Node> expression;
+    Node runParser(std::vector<std::vector<token>> tokens);
+    Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken);
 };
 
 //Interpreter Variables functions and types. Used for evaluation of the AST
 class Symbol
 {
-    public:
-        string type;
-        int integer;
-        string str;
-        bool boolean;
-        vector<int> list;
-        Node function;
-        int line;
+public:
+    std::string type;
+    int integer;
+    std::string str;
+    bool boolean;
+    std::vector<int> list;
+    Node function;
+    int line;
+    Symbol traverse(Node node);
+    std::unordered_map<std::string, Symbol> symTable; //Stores all variables from the outer scope
 };
 
-unordered_map<string, Symbol> variables; //Stores all variables from the outer scope
-
-//Function Declarations
-Symbol traverse(Node node);
 
 int main(int argc, char* argv[]) 
 {
+    //load contents of python file into std::string contents
     std::string input_file_name = argv[1];
     std::ifstream input(input_file_name);
-    //load contents of python file into std::string contents
     std::string contents;
     contents.assign( (std::istreambuf_iterator<char>(input) ),(std::istreambuf_iterator<char>()    ) );
     
-    vector<vector<token>> tokens = lexer(contents);
+    std::vector<std::vector<token>> tokens = lexer(contents);
 
     Node* root = new Node;
     Node* ast = new Node;
+    Symbol* sym = new Symbol;
 
-    *root = ast->parseTree(tokens);
+    *root = ast->runParser(tokens);
 
     for (int i=0; i < root->children.size(); i++) 
     {
-        traverse(root->children[i]);
+        sym->traverse(root->children[i]);
     }
     return 0;
 }
 
 
-
-
-
-
 //TREE PARSING
-Node Node::parseTree(vector<vector<token>> tokens) 
+Node Node::runParser(std::vector<std::vector<token>> tokens) 
 {
-
     //create root node: <program>
     Node* root = new Node;
     root->type = "PROGRAM";
@@ -100,7 +82,7 @@ Node Node::parseTree(vector<vector<token>> tokens)
     {
         currToken = tokens[line][tokenIndex]; //Get current token
         Node* node = new Node;
-        *node = parseStatement(tokens, line, tokenIndex, currToken); //Parse token
+        *node = evaluate(tokens, line, tokenIndex, currToken); //Parse token
         root->children.push_back(*node); //Add statement to root
         if(linesToSkip == 0)
         {
@@ -119,7 +101,7 @@ Node Node::parseTree(vector<vector<token>> tokens)
 }
 
 //Recursive AST parse function
-Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex, token currToken) 
+Node Node::evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken) 
 {
     //Create AST node
     Node* node = new Node;
@@ -147,7 +129,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         {
 
             node->type = ASSIGMENT; //Set type
-            Node expression = parseStatement(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); //Parse expression after equal sign
+            Node expression = evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); //Parse expression after equal sign
 
             node->expression.push_back(expression); //Add expression to assigment node
             return *node; 
@@ -163,7 +145,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             operation.value = "+"; //Set value
 
             operation.parameters.push_back(*node); //Add identifier to parameters
-            operation.parameters.push_back(parseStatement(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after plus sign to parameters
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after plus sign to parameters
 
             return operation;
         }
@@ -187,7 +169,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
                     currToken = tokens[line][tokenIndex+tokenIncrement];
                     continue;
                 }
-                Node expression = parseStatement(tokens, line, tokenIndex+tokenIncrement, currToken); //parse parameter
+                Node expression = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken); //parse parameter
                 functionCall.parameters.push_back(expression); //Add parameter to function call
                 tokenIncrement ++; //Increment to skip parameter
                 currToken = tokens[line][tokenIndex+tokenIncrement]; //Get next token
@@ -208,7 +190,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             Node listIndex = Node();
             listIndex.type = LIST_INDEX; //Set type
             listIndex.symbol = node->symbol; //Set symbol
-            listIndex.parameters.push_back(parseStatement(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after open bracket to parameters
+            listIndex.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after open bracket to parameters
 
             int tokenIncrement = 2; //Increment to skip open bracket
 
@@ -221,7 +203,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
                 } 
                 else 
                 {
-                    cout << "no closing bracket\n";
+                    std::cout << "no closing bracket\n";
                 }
             }
 
@@ -240,7 +222,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             {
                 node->type = ASSIGMENT;
                 currToken = tokens[line][tokenIndex+tokenIncrement+1];
-                listIndex.expression.push_back(parseStatement(tokens, line, tokenIndex+tokenIncrement+1, currToken));
+                listIndex.expression.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, currToken));
                 node->expression.push_back(listIndex);
                 return *node;
             }
@@ -253,7 +235,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
                 operation.value = currToken.value;
 
                 operation.parameters.push_back(listIndex);
-                operation.parameters.push_back(parseStatement(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
+                operation.parameters.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
 
                 return operation;
             }
@@ -270,7 +252,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             operation.value = currToken.value;
 
             operation.parameters.push_back(*node);
-            operation.parameters.push_back(parseStatement(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
 
             return operation;
         }
@@ -291,7 +273,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
                 //if end of parameters reached
                 if (currToken.type == CLOSE_PARENTHESES) break;
 
-                functionCall.parameters.push_back(parseStatement(tokens, line, tokenIndex+2+tokenIncrement, currToken));
+                functionCall.parameters.push_back(evaluate(tokens, line, tokenIndex+2+tokenIncrement, currToken));
             }
 
             return functionCall;
@@ -325,7 +307,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             if (currToken.type == CLOSE_PARENTHESES) break;
 
             //Parse next token
-            Node node = parseStatement(tokens, line, tokenIndex+tokenIncrement, currToken);
+            Node node = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
             
             //Add to parameters
             expression.expression.push_back(node);
@@ -349,7 +331,6 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
     //If token is an open bracket
     if (currToken.type == OPEN_BRACKET) 
     {
-
         Node list = Node();
         list.type = LIST;
         int tokenIncrement = 1;
@@ -370,7 +351,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             if (currToken.type == CLOSE_BRACKET) break;
 
             //Parse next token
-            Node element = parseStatement(tokens, line, tokenIndex+tokenIncrement, currToken);
+            Node element = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
 
             //Add to list expression
             list.expression.push_back(element);
@@ -396,7 +377,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             operation.value = currToken.value;
 
             operation.parameters.push_back(list);
-            operation.parameters.push_back(parseStatement(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
 
             return operation;
         }
@@ -427,7 +408,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             operation.value = "+";
 
             operation.parameters.push_back(*node);
-            operation.parameters.push_back(parseStatement(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
+            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
 
             return operation;
         }
@@ -473,7 +454,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         print.type = FUNCTION_CALL;
         print.symbol = currToken.value;
 
-        print.expression.push_back(parseStatement(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
+        print.expression.push_back(evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
         return print;
     }
 
@@ -486,7 +467,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         ifStatement.type = FUNCTION_CALL;
         ifStatement.symbol = currToken.value;
 
-        ifStatement.parameters.push_back(parseStatement(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
+        ifStatement.parameters.push_back(evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
 
         //Check for colon and new line
         int tokenIncrement = 2;
@@ -505,7 +486,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         while (currToken.type != BLOCK_END) 
         {
             linesToSkip ++;
-            Node node = parseStatement(tokens, line, tokenIndex, currToken);
+            Node node = evaluate(tokens, line, tokenIndex, currToken);
             ifStatement.children.push_back(node);
             token lastElement = tokens[line][tokens[line].size()-1];
             line += 1 + node.children.size();
@@ -531,7 +512,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
             {
                 linesToSkip ++;
                 if(line > tokens.size()) break;
-                Node node = parseStatement(tokens, line, tokenIndex, currToken);
+                Node node = evaluate(tokens, line, tokenIndex, currToken);
                 elseStatement.children.push_back(node);
                 token lastElement = tokens[line][tokens[line].size()-1];
                 line += 1 + node.children.size();
@@ -584,7 +565,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         while (currToken.type != BLOCK_END) 
         {
             linesToSkip ++;
-            Node funcStatement = parseStatement(tokens, line, tokenIndex, currToken);
+            Node funcStatement = evaluate(tokens, line, tokenIndex, currToken);
             function.children.push_back(funcStatement);
             token lastElement = tokens[line][tokens[line].size()-1];
             line += 1 + funcStatement.children.size();
@@ -602,7 +583,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
     {
         if (tokens[line].size() > 1) 
         {
-            return parseStatement(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]);
+            return evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]);
         } 
         else 
         {
@@ -618,9 +599,7 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
         returnNode.type = RETURN;
 
         currToken = tokens[line][tokenIndex+1];
-        returnNode.expression.push_back(parseStatement(tokens, line, tokenIndex+1, currToken));
-
-
+        returnNode.expression.push_back(evaluate(tokens, line, tokenIndex+1, currToken));
         return returnNode;
     }
     
@@ -632,21 +611,18 @@ Node Node::parseStatement(vector<vector<token>> tokens, int line, int tokenIndex
 
 
 
-Symbol traverse(Node node) 
+Symbol Symbol::traverse(Node node) 
 {
-    unordered_map<string, Symbol> variables2 = variables;
-
     if (node.type == ASSIGMENT) 
     {
 
         Symbol symbol = Symbol();
-        string symbolName = node.symbol;
+        std::string symbolName = node.symbol;
         symbol.line = node.line;
 
-        if (node.expression.size() == 0) cout << "ERROR: Assigment without expression at line: " << node.line << endl;
 
         symbol = traverse(node.expression[0]);
-        variables[symbolName] = symbol;
+        symTable[symbolName] = symbol;
 
         return symbol;
     }
@@ -654,36 +630,44 @@ Symbol traverse(Node node)
     if (node.type == FUNCTION) 
     {
         Symbol function = Symbol();
-        string functionName = node.symbol;
+        std::string functionName = node.symbol;
         function.function = node;
         function.line = node.line;
         function.type = "function";
-        variables[functionName] = function;
+        symTable[functionName] = function;
     }
 
     if (node.type == FUNCTION_CALL) 
     {
         if (node.symbol == "print") 
         {
-            if (node.expression.size() == 0) cout << "ERROR: Print without expression at line: " << node.line << endl;
             for (int i=0; i<node.expression[0].expression.size(); i++) 
             {
                 Symbol toPrint = traverse(node.expression[0].expression[i]);
-                if (toPrint.type == NUMBER) cout << toPrint.integer << " ";
-                if (toPrint.type == STRING) cout << toPrint.str << " ";
+                if (toPrint.type == NUMBER)
+                {
+                    int intPrint = toPrint.integer;
+                    std::cout << intPrint << " ";
+                }
+                if (toPrint.type == STRING)
+                { 
+                    std::string strPrint = toPrint.str;
+                    std::cout << strPrint << " ";
+                }
                 if (toPrint.type == LIST) 
                 {
-                    cout << "[";
-                    for (int i=0; i<toPrint.list.size(); i++) 
+                    std::cout << "[";
+                    for (int i = 0; i < toPrint.list.size() -1 ; i++) 
                     {
-                        cout << toPrint.list[i];
-                        if (i != toPrint.list.size() - 1) cout << ", ";
+                        std::cout << toPrint.list[i] << ", ";
                     }
-                    cout << "] ";
+                    int last = toPrint.list.size()-1;
+                    std::cout << toPrint.list[last];
+                    std::cout << "] ";
                 }
             }
 
-            cout << endl;
+            std::cout << endl;
         }
 
         if (node.symbol == "if") 
@@ -713,16 +697,16 @@ Symbol traverse(Node node)
             }
         }
 
-        if (variables.find(node.symbol) != variables.end()) 
+        if (symTable.find(node.symbol) != symTable.end()) 
         {
-            Node function = variables[node.symbol].function;
+            Node function = symTable[node.symbol].function;
 
             //Get parameters
             for (int i = 0; i < function.parameters.size(); i++) 
             {
-                string parameterName = function.parameters[i].symbol;
+                std::string parameterName = function.parameters[i].symbol;
                 Symbol parameterValue = traverse(node.parameters[i]);
-                variables[parameterName] = parameterValue;
+                symTable[parameterName] = parameterValue;
             }
 
             //Execute function
@@ -752,10 +736,10 @@ Symbol traverse(Node node)
         {
             if (term1.type == LIST && term2.type == LIST) 
             {
-                Symbol newList = Symbol();
-                newList.type = LIST;
-                newList.line = node.line;
-                vector<int> list;
+                Symbol res = Symbol();
+                res.type = LIST;
+                res.line = node.line;
+                std::vector<int> list;
                 for (int i = 0; i < term1.list.size(); i++) 
                 {
                     list.push_back(term1.list[i]);
@@ -764,13 +748,49 @@ Symbol traverse(Node node)
                 {
                     list.push_back(term2.list[i]);
                 }
-                newList.list = list;
-                return newList;
+                res.list = list;
+                return res;
             }
 
-            result.type = NUMBER;
-            result.integer = term1.integer + term2.integer;
-            return result;
+            if (term1.type == STRING && term2.type == STRING) 
+            {
+                Symbol res = Symbol();
+                res.type = STRING;
+                res.line = node.line;
+                std::string str = "";
+                for (int i = 0; i < term1.str.size(); i++) 
+                {
+                    str += term1.str[i];
+                }
+                for (int i = 0; i < term2.str.size(); i++) 
+                {
+                    str += term2.str[i];
+                }
+                res.str = str;
+                return res;
+            }
+
+
+
+
+
+
+            if(term1.type == NUMBER && term2.type == NUMBER)
+            {
+                result.type = NUMBER;
+                result.integer = term1.integer + term2.integer;
+                return result;
+            }
+
+            if((term1.type == NUMBER && term2.type != NUMBER) || (term1.type != NUMBER && term2.type == NUMBER) )
+            {
+                std::cout << "error, cannot add number to non-number\n";
+            }
+            if((term1.type == LIST && term2.type != LIST) || (term1.type != LIST && term2.type == LIST))
+            {
+                std::cout << "error, cannot add list to non-list\n";
+            }
+            
         }
 
         //COMPARISON
@@ -832,7 +852,6 @@ Symbol traverse(Node node)
             return result;
         }
 
-        cout << "ERROR: Operation not implemented at line: " << node.line << endl;
     }
 
     if (node.type == EXPRESSION) 
@@ -890,9 +909,9 @@ Symbol traverse(Node node)
 
     if (node.type == LIST_INDEX) 
     {
-        if (variables.find(node.symbol) != variables.end()) 
+        if (symTable.find(node.symbol) != symTable.end()) 
         {
-            Symbol symbol = variables[node.symbol];
+            Symbol symbol = symTable[node.symbol];
             if (node.expression.size() > 0) 
             {
                 Symbol parameter = traverse(node.parameters[0]);
@@ -918,9 +937,9 @@ Symbol traverse(Node node)
 
     if (node.type == IDENTIFIER) 
     {
-        if(variables.find(node.symbol) != variables.end()) 
+        if(symTable.find(node.symbol) != symTable.end()) 
         {
-            return variables[node.symbol];
+            return symTable[node.symbol];
         } 
     }
     return Symbol();
