@@ -1,18 +1,3 @@
-As of now, our parser works by making a single pass over the python osurce code.
-The two main classes in the program are Lexer and Parser.
-For every line of python code, the Lexer will identify every token in the line and store them in a vector of tokens (i.e. tokenVector).
-The Parser will then read every resulting vector of tokens, keeping track of variables and their values in an unordered_map, mapping variable names to an associated type and value.
-Our main issue of concern with this program is that it treats the addition of an integer and a list element as list concatenation rather than simple addition.
-when reading a + l[0], it treats the integers a, and l[0] as if they were both lists.
-if a equaled 5 and l[0] equaled 1, the result would be [5, 0] instead of simply 6.
-
-For some possible extra points, we implemented a way of supporting lists of strings and arithmetic operations other than addition.
-
-example of string support:
-
-a = ["abc", "def", "hij"]
-b = a[1]
-print(b)
-
-would give a result of "def"
-
+As of now, our parser works by making a single pass over the python osurce code. The two main classes in the program are Lexer and Parser. For every line of python code, the Lexer will identify every token in the line and store them in a vector of tokens. Every line of source code will have its own dedicated vector of tokens. Each of these respective vectors will be brought together into a two-dimensional vector of tokens. 
+The Parser will then read every resulting vector of tokens, keeping track of variables and their values in an unordered_map, mapping variable names to an associated type and value. We then build an abstract syntax tree that will be evaluated recursively, outputting terminal symbols present in the symbol table upon every "print" enocuntered.
+We are only able to pass 5 out of the 10 test cases for phase two. Our phase one submission was not very good, having only passed 5 of those cases as well. Before even addressing phase two, we dedicated our time in ensuring we could pass all 10 phase one test cases since those are much easier to implement a solution for.
