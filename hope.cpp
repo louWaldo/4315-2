@@ -80,13 +80,11 @@ public:
     int line;
 };
 
-std::vector<std::vector<token>> lexer(std::string);
 std::unordered_map<std::string, Symbol> symTable;
+std::vector<std::vector<token>> lexer(std::string);
 Node runParser(std::vector<std::vector<token>> tokens);
 Symbol evaulate(Node node);
-Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken) ;
-
-
+Node evaluate(std::vector<std::vector<token>> tokens, int line, int t_idx, token currToken) ;
 
 
 int main(int argc, char* argv[]) 
@@ -117,14 +115,14 @@ Node runParser(std::vector<std::vector<token>> tokens)
 {
     Node* root = new Node;
     int line = 0; 
-    int tokenIndex = 0; 
+    int t_idx = 0; 
     token currToken; 
 
     while (line < tokens.size()) 
     {
-        currToken = tokens[line][tokenIndex]; 
+        currToken = tokens[line][t_idx]; 
         Node* node = new Node;
-        *node = evaluate(tokens, line, tokenIndex, currToken); 
+        *node = evaluate(tokens, line, t_idx, currToken); 
         root->children.push_back(*node); 
         if(fun_if_else == 0)
         {
@@ -141,7 +139,7 @@ Node runParser(std::vector<std::vector<token>> tokens)
     return *root; 
 }
 
-Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, token currToken) 
+Node evaluate(std::vector<std::vector<token>> tokens, int line, int t_idx, token currToken) 
 {
     Node* node = new Node;
     if (currToken.type == IDENTIFIER) 
@@ -150,18 +148,18 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
         node->type = IDENTIFIER; 
         node->symbol = currToken.value;
 
-        if (tokens[line].size() == 1 || tokenIndex == tokens[line].size() - 1 || tokens[line][tokenIndex + 1].type == NEW_CHUNK)
+        if (tokens[line].size() == 1 || t_idx == tokens[line].size() - 1 || tokens[line][t_idx + 1].type == NEW_CHUNK)
         {
             return *node;
         }
         
-        currToken = tokens[line][tokenIndex+1];
+        currToken = tokens[line][t_idx+1];
 
         if (currToken.type == EQUALS) 
         {
 
             node->type = ASSIGMENT; 
-            Node expression = evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]); //Parse expression after equal sign
+            Node expression = evaluate(tokens, line, t_idx+2, tokens[line][t_idx+2]); 
 
             node->expression.push_back(expression); 
             return *node; 
@@ -171,39 +169,39 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
         if (currToken.type == ADD) 
         {
 
-            Node operation = Node();
-            operation.type = OPERATION; 
-            operation.value = "+"; 
+            Node* operation = new Node;
+            operation->type = OPERATION; 
+            operation->value = "+"; 
 
-            operation.parameters.push_back(*node); 
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); //Add expression after ADD sign to parameters
+            operation->parameters.push_back(*node); 
+            operation->parameters.push_back(evaluate(tokens, line, t_idx+2, tokens[line][t_idx+2])); 
 
-            return operation;
+            return *operation;
         }
 
         if (currToken.type == LEFT_PAREN) 
         {
 
-            Node functionCall = Node();
-            functionCall.type = FUNCTION_CALL; 
-            functionCall.symbol = node->symbol; 
+            Node* func_call = new Node;
+            func_call->type = FUNCTION_CALL; 
+            func_call->symbol = node->symbol; 
             int tokenIncrement = 2;
-            currToken = tokens[line][tokenIndex + 2]; 
+            currToken = tokens[line][t_idx + 2]; 
             while (currToken.type != RIGHT_PAREN) 
             {
                 //Ignore commas
                 if (currToken.type == COMMA) 
                 {
                     tokenIncrement++;
-                    currToken = tokens[line][tokenIndex+tokenIncrement];
+                    currToken = tokens[line][t_idx+tokenIncrement];
                     continue;
                 }
-                Node expression = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken); //parse parameter
-                functionCall.parameters.push_back(expression); 
+                Node expression = evaluate(tokens, line, t_idx+tokenIncrement, currToken); //parse parameter
+                func_call->parameters.push_back(expression); 
                 tokenIncrement ++; 
-                currToken = tokens[line][tokenIndex+tokenIncrement]; 
+                currToken = tokens[line][t_idx+tokenIncrement]; 
             }
-            return functionCall;
+            return *func_call;
         }
 
         
@@ -214,16 +212,16 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
 
         if (currToken.type == LEFT_BRACK) 
         {
-            Node listIndex = Node();
-            listIndex.type = LIST_INDEX; 
-            listIndex.symbol = node->symbol; 
-            listIndex.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2])); 
+            Node* list_idx = new Node;
+            list_idx->type = LIST_INDEX; 
+            list_idx->symbol = node->symbol; 
+            list_idx->parameters.push_back(evaluate(tokens, line, t_idx+2, tokens[line][t_idx+2])); 
             int tokenIncrement = 2; 
             while (currToken.type != RIGHT_BRACK) 
             { 
-                if (tokens[line].size() > tokenIndex + tokenIncrement) 
+                if (tokens[line].size() > t_idx + tokenIncrement) 
                 {
-                    currToken = tokens[line][tokenIndex+tokenIncrement];
+                    currToken = tokens[line][t_idx+tokenIncrement];
                     tokenIncrement++;
                 } 
                 else 
@@ -233,71 +231,71 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
             }
 
             //Check if there are more tokens after the close bracket
-            if (tokens[line].size() > tokenIndex+tokenIncrement) 
+            if (tokens[line].size() > t_idx+tokenIncrement) 
             {
-                currToken = tokens[line][tokenIndex+tokenIncrement];
+                currToken = tokens[line][t_idx+tokenIncrement];
             } else 
             {
-                return listIndex;
+                return *list_idx;
             }
             
             if (currToken.type == EQUALS) 
             {
                 node->type = ASSIGMENT;
-                currToken = tokens[line][tokenIndex+tokenIncrement+1];
-                listIndex.expression.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, currToken));
-                node->expression.push_back(listIndex);
+                currToken = tokens[line][t_idx+tokenIncrement+1];
+                list_idx->expression.push_back(evaluate(tokens, line, t_idx+tokenIncrement+1, currToken));
+                node->expression.push_back(*list_idx);
                 return *node;
             }
 
             if (currToken.type == ADD) 
             { 
-                Node operation = Node();
-                operation.type = OPERATION;
-                operation.value = currToken.value;
+                Node* operation = new Node;
+                operation->type = OPERATION;
+                operation->value = currToken.value;
 
-                operation.parameters.push_back(listIndex);
-                operation.parameters.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
+                operation->parameters.push_back(*list_idx);
+                operation->parameters.push_back(evaluate(tokens, line, t_idx+tokenIncrement+1, tokens[line][t_idx+tokenIncrement+1]));
 
-                return operation;
+                return *operation;
             }
 
-            return listIndex;
+            return *list_idx;
         }
 
         if (currToken.type == OPERATOR) 
         {
 
-            Node operation = Node();
-            operation.type = OPERATION;
-            operation.value = currToken.value;
+            Node* operation = new Node;
+            operation->type = OPERATION;
+            operation->value = currToken.value;
 
-            operation.parameters.push_back(*node);
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
+            operation->parameters.push_back(*node);
+            operation->parameters.push_back(evaluate(tokens, line, t_idx+2, tokens[line][t_idx+2]));
 
-            return operation;
+            return *operation;
         }
 
         if (currToken.type == LEFT_PAREN) 
         {
 
-            Node functionCall = Node();
-            functionCall.type = FUNCTION_CALL;
-            functionCall.symbol = node->symbol;
+            Node* func_call = new Node;
+            func_call->type = FUNCTION_CALL;
+            func_call->symbol = node->symbol;
 
             int tokenIncrement = 1;
-            while (tokenIndex+2+tokenIncrement < tokens[line].size()) 
+            while (t_idx+2+tokenIncrement < tokens[line].size()) 
             {
-                currToken = tokens[line][tokenIndex+2+tokenIncrement];
+                currToken = tokens[line][t_idx+2+tokenIncrement];
                 if (currToken.type == RIGHT_PAREN) 
                 {
                     break;
                 }
-
-                functionCall.parameters.push_back(evaluate(tokens, line, tokenIndex+2+tokenIncrement, currToken));
+                Node push_b = evaluate(tokens, line, t_idx+tokenIncrement+2, currToken);
+                func_call->parameters.push_back(push_b);
             }
 
-            return functionCall;
+            return *func_call;
         }
 
         return *node;
@@ -306,18 +304,18 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
     if (currToken.type == LEFT_PAREN) 
     {
 
-        Node expression = Node();
-        expression.type = EXPRESSION;
+        Node* expression = new Node;
+        expression->type = EXPRESSION;
 
         int tokenIncrement = 1;
         while (currToken.type != RIGHT_PAREN) 
         {
-            currToken = tokens[line][tokenIndex+tokenIncrement];
+            currToken = tokens[line][t_idx+tokenIncrement];
 
             if (currToken.type == COMMA) 
             {
                 tokenIncrement++;
-                currToken = tokens[line][tokenIndex+tokenIncrement];
+                currToken = tokens[line][t_idx+tokenIncrement];
             }
 
             if (currToken.type == RIGHT_PAREN) 
@@ -325,11 +323,11 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
                 break;
             }
 
-            Node node = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
-            expression.expression.push_back(node);
+            Node node = evaluate(tokens, line, t_idx+tokenIncrement, currToken);
+            expression->expression.push_back(node);
             tokenIncrement++;
 
-            for (int i = tokenIndex+tokenIncrement; i < tokens[line].size(); i++) 
+            for (int i = t_idx+tokenIncrement; i < tokens[line].size(); i++) 
             {
                 if (tokens[line][i].type == COMMA || tokens[line][i].type == RIGHT_PAREN) {
                     break;
@@ -339,23 +337,23 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
             
         }
 
-        return expression;
+        return *expression;
     }
 
     if (currToken.type == LEFT_BRACK) 
     {
-        Node list = Node();
-        list.type = LIST;
+        Node* list = new Node;
+        list->type = LIST;
         int tokenIncrement = 1;
 
         while (currToken.type != RIGHT_BRACK) 
         {
-            currToken = tokens[line][tokenIndex+tokenIncrement];
+            currToken = tokens[line][t_idx+tokenIncrement];
 
             if (currToken.type == COMMA) 
             {
                 tokenIncrement++;
-                currToken = tokens[line][tokenIndex+tokenIncrement];
+                currToken = tokens[line][t_idx+tokenIncrement];
             }
 
             if (currToken.type == RIGHT_BRACK)
@@ -363,32 +361,32 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
                 break;
             } 
 
-            Node element = evaluate(tokens, line, tokenIndex+tokenIncrement, currToken);
-            list.expression.push_back(element);
+            Node push_b = evaluate(tokens, line, t_idx+tokenIncrement, currToken);
+            list->expression.push_back(push_b);
             tokenIncrement++;
         }
 
 
         tokenIncrement ++;
-        if (tokenIndex + tokenIncrement < tokens[line].size()) 
+        if (t_idx + tokenIncrement < tokens[line].size()) 
         {
-            currToken = tokens[line][tokenIndex+tokenIncrement];
+            currToken = tokens[line][t_idx+tokenIncrement];
         } 
         else 
         {
-            return list;
+            return *list;
         }
 
-        if (currToken.type == ADD && tokens[line][tokenIndex+tokenIncrement+1].type != NEW_CHUNK) 
+        if (currToken.type == ADD && tokens[line][t_idx+tokenIncrement+1].type != NEW_CHUNK) 
         {
-            Node operation = Node();
-            operation.type = OPERATION;
-            operation.value = currToken.value;
+            Node* op = new Node;
+            op->type = OPERATION;
+            op->value = currToken.value;
 
-            operation.parameters.push_back(list);
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+tokenIncrement+1, tokens[line][tokenIndex+tokenIncrement+1]));
+            op->parameters.push_back(*list);
+            op->parameters.push_back(evaluate(tokens, line, t_idx+tokenIncrement+1, tokens[line][t_idx+tokenIncrement+1]));
 
-            return operation;
+            return *op;
         }
     }
 
@@ -398,24 +396,25 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
         node->type = INT;
         node->value = currToken.value;
 
-        if (tokens[line].size() == 1 || tokenIndex == tokens[line].size() - 1)
+        if (tokens[line].size() == 1 || t_idx == tokens[line].size() - 1)
         {
             return *node;
         }
 
-        currToken = tokens[line][tokenIndex+1];
+        currToken = tokens[line][t_idx+1];
 
         if (currToken.type == ADD) 
         {
 
-            Node operation = Node();
-            operation.type = OPERATION;
-            operation.value = "+";
+            Node* op = new Node;
+            op->type = OPERATION;
+            op->value = "+";
 
-            operation.parameters.push_back(*node);
-            operation.parameters.push_back(evaluate(tokens, line, tokenIndex+2, tokens[line][tokenIndex+2]));
+            op->parameters.push_back(*node);
+            Node push_b = evaluate(tokens, line, t_idx+2, tokens[line][t_idx+2]);
+            op->parameters.push_back(push_b);
 
-            return operation;
+            return *op;
         }
 
         return *node;
@@ -438,26 +437,27 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
     if (currToken.type == PRINT) 
     {
 
-        Node print = Node();
-        print.type = FUNCTION_CALL;
-        print.symbol = currToken.value;
+        Node* print = new Node;
+        print->type = FUNCTION_CALL;
+        print->symbol = currToken.value;
 
-        print.expression.push_back(evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
-        return print;
+        Node push_b = evaluate(tokens, line, t_idx+1, tokens[line][t_idx+1]);
+        print->expression.push_back(push_b);
+        return *print;
     }
 
     
     if (currToken.type == IF) 
     {
 
-        Node ifStatement = Node();
-        ifStatement.type = FUNCTION_CALL;
-        ifStatement.symbol = currToken.value;
+        Node* if_block = new Node;
+        if_block->type = FUNCTION_CALL;
+        if_block->symbol = currToken.value;
 
-        ifStatement.parameters.push_back(evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]));
+        if_block->parameters.push_back(evaluate(tokens, line, t_idx+1, tokens[line][t_idx+1]));
 
         int tokenIncrement = 2;
-        for (int i = tokenIndex+tokenIncrement; i<tokens[line].size(); i++) 
+        for (int i = t_idx+tokenIncrement; i<tokens[line].size(); i++) 
         {
             currToken = tokens[line][i];
             if (currToken.type == COLON) 
@@ -467,100 +467,100 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
         }
         
         line ++;
-        currToken = tokens[line][tokenIndex];
+        currToken = tokens[line][t_idx];
         while (currToken.type != NEW_CHUNK) 
         {
             fun_if_else ++;
-            Node node = evaluate(tokens, line, tokenIndex, currToken);
-            ifStatement.children.push_back(node);
+            Node push_b = evaluate(tokens, line, t_idx, currToken);
+            if_block->children.push_back(push_b);
             token lastElement = tokens[line][tokens[line].size()-1];
-            line += 1 + node.children.size();
+            line += 1 + node->children.size();
             if (lastElement.type == NEW_CHUNK) 
             {
                 break;
             }
-            currToken = tokens[line][tokenIndex];
+            currToken = tokens[line][t_idx];
         }
         
-        currToken = tokens[line][tokenIndex];
+        currToken = tokens[line][t_idx];
         if (currToken.type == ELSE) 
         {
-            Node elseStatement = Node();
-            elseStatement.type = FUNCTION_CALL;
-            elseStatement.symbol = currToken.value;
+            Node* else_block = new Node;
+            else_block->type = FUNCTION_CALL;
+            else_block->symbol = currToken.value;
 
             line ++;
             fun_if_else ++;
-            currToken = tokens[line][tokenIndex];
+            currToken = tokens[line][t_idx];
             while (currToken.type != NEW_CHUNK) 
             {
                 fun_if_else ++;
                 if(line > tokens.size()) break;
-                Node node = evaluate(tokens, line, tokenIndex, currToken);
-                elseStatement.children.push_back(node);
+                Node node = evaluate(tokens, line, t_idx, currToken);
+                else_block->children.push_back(node);
                 token lastElement = tokens[line][tokens[line].size()-1];
                 line += 1 + node.children.size();
                 if (lastElement.type == NEW_CHUNK) break;
                 if (tokens.size() > line) 
                 {
-                    currToken = tokens[line][tokenIndex];
+                    currToken = tokens[line][t_idx];
                 }
             }
 
-            ifStatement.children.push_back(elseStatement);
+            if_block->children.push_back(*else_block);
         }
         
-        return ifStatement;
+        return *if_block;
     }
 
     if (currToken.type == FUNCTION_DEFINITION) 
     {
 
-        Node function = Node();
-        function.type = FUNCTION;
+        Node* function = new Node;
+        function->type = FUNCTION;
         int tokenIncrement = 1;
-        currToken = tokens[line][tokenIndex+tokenIncrement];
-        function.symbol = currToken.value;
+        currToken = tokens[line][t_idx+tokenIncrement];
+        function->symbol = currToken.value;
         tokenIncrement ++;
-        currToken = tokens[line][tokenIndex+tokenIncrement];
+        currToken = tokens[line][t_idx+tokenIncrement];
         while (currToken.type != COLON) 
         {
             if (currToken.type == IDENTIFIER) 
             {
-                Node parameter = Node();
-                parameter.type = PARAMETER;
-                parameter.symbol = currToken.value;
-                function.parameters.push_back(parameter);
+                Node* param = new Node;
+                param->type = PARAMETER;
+                param->symbol = currToken.value;
+                function->parameters.push_back(*param);
             } 
 
             tokenIncrement ++;
-            currToken = tokens[line][tokenIndex+tokenIncrement];
+            currToken = tokens[line][t_idx+tokenIncrement];
         }
         
         line ++;
         fun_if_else ++;
-        currToken = tokens[line][tokenIndex];
+        currToken = tokens[line][t_idx];
         while (currToken.type != NEW_CHUNK) 
         {
             fun_if_else ++;
-            Node funcStatement = evaluate(tokens, line, tokenIndex, currToken);
-            function.children.push_back(funcStatement);
+            Node funcStatement = evaluate(tokens, line, t_idx, currToken);
+            function->children.push_back(funcStatement);
             token lastElement = tokens[line][tokens[line].size()-1];
             line += 1 + funcStatement.children.size();
             if (lastElement.type == NEW_CHUNK) break;
             if (tokens.size() > line) 
             {
-                currToken = tokens[line][tokenIndex];
+                currToken = tokens[line][t_idx];
             }
         }
-        return function;
+        return *function;
     }
 
     if (currToken.type == NEW_CHUNK) 
     {
         if (tokens[line].size() > 1) 
         {
-            return evaluate(tokens, line, tokenIndex+1, tokens[line][tokenIndex+1]);
+            return evaluate(tokens, line, t_idx+1, tokens[line][t_idx+1]);
         } 
         else 
         {
@@ -571,18 +571,19 @@ Node evaluate(std::vector<std::vector<token>> tokens, int line, int tokenIndex, 
     if (currToken.type == RETURN) 
     {
 
-        Node returnNode = Node();
-        returnNode.type = RETURN;
+        Node* returnNode = new Node;
+        returnNode->type = RETURN;
 
-        currToken = tokens[line][tokenIndex+1];
-        returnNode.expression.push_back(evaluate(tokens, line, tokenIndex+1, currToken));
-        return returnNode;
+        currToken = tokens[line][t_idx+1];
+        Node push_b = evaluate(tokens, line, t_idx+1, currToken);
+        returnNode->expression.push_back(push_b);
+        return *returnNode;
     }
     
-    Node error = Node();
-    error.type = ERROR;
-    error.value = "Unrecognized statement";
-    return error;
+    Node* null_node = new Node;
+    node->type = NULL_ID;
+    node->value = "null";
+    return *null_node;
 }
 
 
@@ -907,18 +908,18 @@ std::vector<std::vector<token>> lexer(std::string input)
 {
     std::vector<std::vector<token>> tokens; 
     std::vector<token> lineTokens; 
-    int currIndex = 0; 
+    int curr_idx = 0; 
     int indentationLevel = 0; 
     int indentationLength = 0; 
     bool isIndent = false; 
     int lastIndentationLength = 0; 
-    while (currIndex < input.length()) 
+    while (curr_idx < input.length()) 
     {
         std::string subStr = ""; 
-        subStr += input[currIndex]; 
+        subStr += input[curr_idx]; 
 
         
-        if (input[currIndex] == '\n') 
+        if (input[curr_idx] == '\n') 
         {
             if(isIndent) 
             {
@@ -927,7 +928,7 @@ std::vector<std::vector<token>> lexer(std::string input)
                 if (indentationLevel == 1 && indentationLength == 0)
                 {
                     int index = 1;
-                    while (input[currIndex+index] == ' ') 
+                    while (input[curr_idx+index] == ' ') 
                     {
                         index ++;
                         indentationLength ++;
@@ -936,9 +937,9 @@ std::vector<std::vector<token>> lexer(std::string input)
 
                 for (int i = 1; i <= indentationLength * indentationLevel; i++) 
                 {
-                    if (input[currIndex+i] == ' ') 
+                    if (input[curr_idx+i] == ' ') 
                     {
-                        indentation += input[currIndex+i];
+                        indentation += input[curr_idx+i];
                     } 
                     else 
                     {
@@ -947,15 +948,15 @@ std::vector<std::vector<token>> lexer(std::string input)
                 }
                 if (indentation.length() != 0 && indentation.length() % (indentationLength*indentationLevel) == 0) 
                 {
-                    currIndex += 1 + indentation.length();
+                    curr_idx += 1 + indentation.length();
                     if (lineTokens.size() > 0) tokens.push_back(lineTokens);
                     lineTokens.clear();
                     continue;
                 }
                 
-                if (input[currIndex+1] == '\n') 
+                if (input[curr_idx+1] == '\n') 
                 {
-                    currIndex ++;
+                    curr_idx ++;
                     continue;
                 }
                 if (indentation.length() == 0 && indentationLevel > 1) 
@@ -979,13 +980,13 @@ std::vector<std::vector<token>> lexer(std::string input)
                 t.value = "NEW_CHUNK";
                 lineTokens.push_back(t);
                 indentationLength = indentationLength * indentationLevel; 
-                currIndex += 1 + indentation.length(); 
+                curr_idx += 1 + indentation.length(); 
                 tokens.push_back(lineTokens); 
                 lineTokens.clear(); 
                 continue;
             }
 
-            currIndex ++; 
+            curr_idx ++; 
             if (lineTokens.size()>0) 
             {
                 tokens.push_back(lineTokens);
@@ -995,43 +996,43 @@ std::vector<std::vector<token>> lexer(std::string input)
         }
 
         //check for comment or whitespace
-        if(input[currIndex] == '#' || input[currIndex] == ' ') 
+        if(input[curr_idx] == '#' || input[curr_idx] == ' ') 
         {
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //check for comma
-        if(input[currIndex] == ',') {
+        if(input[curr_idx] == ',') {
             token t;
             t.type = COMMA;
             t.value = ",";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //check for colon
-        if(input[currIndex] == ':') {
+        if(input[curr_idx] == ':') {
             token t;
             t.type = COLON;
             t.value = ":";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //equal and equal_equal
-        if (input[currIndex] == '=') 
+        if (input[curr_idx] == '=') 
         {
-            currIndex ++;
-            if (input[currIndex] == '=') 
+            curr_idx ++;
+            if (input[curr_idx] == '=') 
             {
                 token t;
                 t.type = OPERATOR;
                 t.value = "==";
                 lineTokens.push_back(t);
-                currIndex ++;
+                curr_idx ++;
                 continue;
             } 
             else 
@@ -1045,16 +1046,16 @@ std::vector<std::vector<token>> lexer(std::string input)
         }
 
         //greater, greater than
-        if (input[currIndex] == '>') 
+        if (input[curr_idx] == '>') 
         {
-            currIndex ++;
-            if (input[currIndex] == '=') 
+            curr_idx ++;
+            if (input[curr_idx] == '=') 
             {
                 token t;
                 t.type = OPERATOR;
                 t.value = ">=";
                 lineTokens.push_back(t);
-                currIndex ++;
+                curr_idx ++;
                 continue;
             } 
             else 
@@ -1067,16 +1068,16 @@ std::vector<std::vector<token>> lexer(std::string input)
         }
 
         //less, less than
-        if (input[currIndex] == '<') 
+        if (input[curr_idx] == '<') 
         {
-            currIndex ++;
-            if (input[currIndex] == '=') 
+            curr_idx ++;
+            if (input[curr_idx] == '=') 
             {
                 token t;
                 t.type = OPERATOR;
                 t.value = "<=";
                 lineTokens.push_back(t);
-                currIndex ++;
+                curr_idx ++;
                 continue;
             } 
             else 
@@ -1090,88 +1091,88 @@ std::vector<std::vector<token>> lexer(std::string input)
         }
 
         //check not equal
-        if (input[currIndex] == '!') 
+        if (input[curr_idx] == '!') 
         {
-            currIndex ++;
-            if (input[currIndex] == '=') 
+            curr_idx ++;
+            if (input[curr_idx] == '=') 
             {
                 token t;
                 t.type = OPERATOR;
                 t.value = "!=";
                 lineTokens.push_back(t);
-                currIndex ++;
+                curr_idx ++;
                 continue;
             } 
         }
 
         //check add
-        if (input[currIndex] == '+') 
+        if (input[curr_idx] == '+') 
         {
             token t;
             t.type = ADD;
             t.value = "+";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //check for parentheses
-        if (input[currIndex] == '(') 
+        if (input[curr_idx] == '(') 
         {
             token t;
             t.type = LEFT_PAREN;
             t.value = "(";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
-        if (input[currIndex] == ')') 
+        if (input[curr_idx] == ')') 
         {
             token t;
             t.type = RIGHT_PAREN;
             t.value = ")";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //checking for bracket
-        if (input[currIndex] == '[') 
+        if (input[curr_idx] == '[') 
         {
             token t;
             t.type = LEFT_BRACK;
             t.value = "[";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
-        if (input[currIndex] == ']') 
+        if (input[curr_idx] == ']') 
         {
             token t;
             t.type = RIGHT_BRACK;
             t.value = "]";
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
         //checking for string
-        if (input[currIndex] == '\"') 
+        if (input[curr_idx] == '\"') 
         {
             std::string str = "";
-            currIndex ++;
-            while (input[currIndex] != '\"') 
+            curr_idx ++;
+            while (input[curr_idx] != '\"') 
             {
-                str += input[currIndex];
-                currIndex ++;
+                str += input[curr_idx];
+                curr_idx ++;
             }
             token t;
             t.type = STRING;
             t.value = str;
             lineTokens.push_back(t);
-            currIndex ++;
+            curr_idx ++;
             continue;
         }
 
@@ -1179,10 +1180,10 @@ std::vector<std::vector<token>> lexer(std::string input)
         if (isdigit(subStr[0])) 
         {
             std::string number = "";
-            while (isdigit(input[currIndex]) && currIndex < input.length()) 
+            while (isdigit(input[curr_idx]) && curr_idx < input.length()) 
             {
-                number += input[currIndex];
-                currIndex ++;
+                number += input[curr_idx];
+                curr_idx ++;
             }
 
             token t;
@@ -1196,10 +1197,10 @@ std::vector<std::vector<token>> lexer(std::string input)
         if (isalpha(subStr[0])) 
         {
             std::string identifier = "";
-            while ((isalpha(input[currIndex]) || isdigit(input[currIndex])) && currIndex < input.length()) 
+            while ((isalpha(input[curr_idx]) || isdigit(input[curr_idx])) && curr_idx < input.length()) 
             {
-                identifier += input[currIndex];
-                currIndex ++;
+                identifier += input[curr_idx];
+                curr_idx ++;
             }
 
             if (identifier == "print") 
